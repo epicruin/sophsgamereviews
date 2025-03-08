@@ -16,6 +16,8 @@
     timeout = 30
   [functions.predict-genre]
     timeout = 30
+  [functions.igdb-search]
+    timeout = 30
 
 # Redirect specific API endpoints to dedicated functions - handle both relative and absolute URLs
 [[redirects]]
@@ -42,6 +44,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/igdb/search"
+  to = "/.netlify/functions/igdb-search"
+  status = 200
+  force = true
+
 # Handle the absolute URL versions as shown in the minified code
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/game-title"
@@ -64,6 +72,12 @@
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/predict-genre"
   to = "/.netlify/functions/predict-genre"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/igdb/search"
+  to = "/.netlify/functions/igdb-search"
   status = 200
   force = true
 
