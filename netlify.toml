@@ -5,11 +5,16 @@
 
 [functions]
   node_bundler = "esbuild"
+  # Increase timeout for AI operations
+  [functions.api]
+    timeout = 30
 
+# API routes should point to our api function
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
 # Handle client-side routing for all non-API routes
 [[redirects]]
