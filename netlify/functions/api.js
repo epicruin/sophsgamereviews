@@ -5,7 +5,6 @@ const path = require('path');
 // We need to use dynamic import for TypeScript modules
 exports.handler = async (event, context) => {
   console.log('Function invoked with path:', event.path);
-  console.log('Headers:', JSON.stringify(event.headers));
   console.log('HTTP Method:', event.httpMethod);
   console.log('Body exists:', !!event.body);
   
@@ -36,32 +35,43 @@ exports.handler = async (event, context) => {
       body: body ? JSON.parse(body) : undefined,
     };
 
-    // Create a response object
-    let responseBody = '';
-    let responseStatusCode = 200;
-    let responseHeaders = {};
+    // Create a simplified response object
+    let finalResponse = {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: ''
+    };
 
     const res = {
       status(statusCode) {
         console.log('Setting status code:', statusCode);
-        responseStatusCode = statusCode;
+        finalResponse.statusCode = statusCode;
         return this;
       },
       set(header, value) {
-        responseHeaders[header] = value;
+        finalResponse.headers[header] = value;
         return this;
       },
       json(data) {
-        console.log('Sending JSON response:', JSON.stringify(data).substring(0, 200) + '...');
-        responseBody = JSON.stringify(data);
-        if (!responseHeaders['Content-Type']) {
-          responseHeaders['Content-Type'] = 'application/json';
+        console.log('Response data type:', typeof data);
+        // Handle serialization properly - only stringify if not already a string
+        finalResponse.body = typeof data === 'string' ? data : JSON.stringify(data);
+        if (!finalResponse.headers['Content-Type']) {
+          finalResponse.headers['Content-Type'] = 'application/json';
         }
         return this;
       },
       send(data) {
-        console.log('Sending response:', typeof data === 'string' ? data.substring(0, 200) + '...' : '[non-string data]');
-        responseBody = data;
+        console.log('Response data type:', typeof data);
+        // Handle various data types
+        if (typeof data === 'object' && data !== null) {
+          finalResponse.body = JSON.stringify(data);
+          if (!finalResponse.headers['Content-Type']) {
+            finalResponse.headers['Content-Type'] = 'application/json';
+          }
+        } else {
+          finalResponse.body = data.toString();
+        }
         return this;
       },
       end() {
@@ -74,18 +84,23 @@ exports.handler = async (event, context) => {
       app(req, res, resolve);
     });
 
-    // Return the response
-    console.log('Function completing with status:', responseStatusCode);
-    return {
-      statusCode: responseStatusCode,
-      headers: responseHeaders,
-      body: responseBody
-    };
+    // Log the final response for debugging
+    console.log('Function completing with status:', finalResponse.statusCode);
+    console.log('Response body exists:', !!finalResponse.body);
+    if (finalResponse.body) {
+      console.log('First 100 chars of response:', finalResponse.body.substring(0, 100));
+    }
+
+    // Return the finalized response
+    return finalResponse;
   } catch (error) {
     console.error('Function error:', error);
     console.error('Stack trace:', error.stack);
+    
+    // Return a properly formatted error
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: 'Server error', 
         message: error.message,
