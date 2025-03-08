@@ -9,4 +9,10 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Handle client-side routing for all non-API routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200 
