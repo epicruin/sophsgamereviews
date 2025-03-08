@@ -10,6 +10,12 @@
     timeout = 30
   [functions.game-title]
     timeout = 30
+  [functions.game-info]
+    timeout = 30
+  [functions.chat]
+    timeout = 30
+  [functions.predict-genre]
+    timeout = 30
 
 # Redirect specific API endpoints to dedicated functions - handle both relative and absolute URLs
 [[redirects]]
@@ -18,10 +24,46 @@
   status = 200
   force = true
 
-# Handle the absolute URL version as shown in the minified code
+[[redirects]]
+  from = "/api/game-info"
+  to = "/.netlify/functions/game-info"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/predict-genre"
+  to = "/.netlify/functions/predict-genre"
+  status = 200
+  force = true
+
+# Handle the absolute URL versions as shown in the minified code
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/game-title"
   to = "/.netlify/functions/game-title"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/game-info"
+  to = "/.netlify/functions/game-info"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/predict-genre"
+  to = "/.netlify/functions/predict-genre"
   status = 200
   force = true
 
