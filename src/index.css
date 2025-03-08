@@ -1,0 +1,284 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Prata&family=Press+Start+2P&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 346.8 77.2% 49.8%;
+    --radius: 1.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #fdfcfb 0%, #FFE4E6 100%);
+  }
+  /* Default heading styles with Bebas Neue */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  /* Specific adjustments for different heading sizes */
+  h1 { letter-spacing: 0.03em; }
+  h2 { letter-spacing: 0.025em; }
+  h3 { letter-spacing: 0.02em; }
+}
+
+/* Hero section specific styles */
+.welcome-text {
+  font-family: 'Prata', serif !important;
+  letter-spacing: normal !important;
+  line-height: normal !important;
+}
+
+/* First card in carousel - only show right glow */
+div[role="group"]:first-child .card-hover::before {
+  display: none;
+}
+
+/* Last card in carousel - only show left glow */
+div[role="group"]:last-child .card-hover::before {
+  display: none;
+}
+
+/* Glow container - allows glow to be visible without scrollbars */
+/* .glow-container {
+  mask-image: linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%);
+} */
+
+.card-hover {
+  transition: transform 0.3s ease;
+  background: transparent;
+  backdrop-filter: none;
+  position: relative;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+}
+
+@keyframes borderGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #F43F5E 0%, #7551FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Retro game button text */
+.retro-game-text {
+  font-family: 'Press Start 2P', cursive;
+  letter-spacing: 0.150em;
+  line-height: 0.3;
+  text-transform: uppercase;
+  font-size: 0.65em;
+}
+
+/* Additional styles for navigation and indicators */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+.fullscreen-section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  scroll-margin-top: 0;
+  padding-top: 10px; /* Just a tiny bit of padding */
+}
+
+/* Welcome pill */
+.welcome-pill {
+  position: fixed;
+  top: 67px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(15, 15, 15, 0.6);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.3s ease;
+  z-index: 102;
+  white-space: nowrap;
+}
+
+/* Keyboard navigation indicator */
+.keyboard-nav-indicator {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background-color: rgba(15, 15, 15, 0.8);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.keyboard-nav-indicator:hover {
+  opacity: 1;
+  width: auto;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.keyboard-nav-indicator .cog-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.keyboard-nav-indicator .nav-text {
+  display: none;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.keyboard-nav-indicator:hover .nav-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyboard-nav-indicator .key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(244, 63, 94, 0.8);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Game controls indicator */
+.game-controls-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: rgba(15, 15, 15, 0.8);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.game-controls-indicator:hover {
+  opacity: 1;
+  width: auto;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.game-controls-indicator img {
+  width: 24px;
+  height: 24px;
+}
+
+.game-controls-indicator .controls-text {
+  display: none;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.game-controls-indicator:hover .controls-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-controls-indicator .key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(244, 63, 94, 0.8);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  /* Remove section-nav related styles */
+}
+
+@media (max-width: 480px) {
+  /* Remove section-nav related styles */
+  .fullscreen-section:last-of-type {
+    padding-bottom: 50px;
+  }
+}
+
+@media (min-width: 481px) {
+  .mobile-nav {
+    display: none;
+  }
+}
