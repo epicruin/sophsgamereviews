@@ -51,6 +51,11 @@ async function getIGDBToken(userId) {
   }
 }
 
+// Get image URL from IGDB image ID
+function getImageUrl(imageId, size = '1080p') {
+  return `https://images.igdb.com/igdb/image/upload/t_${size}/${imageId}.jpg`;
+}
+
 // Search for games in IGDB
 async function searchGame(title, token) {
   try {
@@ -73,7 +78,21 @@ async function searchGame(title, token) {
       throw new Error('Failed to fetch from IGDB');
     }
 
-    return await response.json();
+    const games = await response.json();
+    
+    // Process each game to extract cover and screenshots in the right format
+    return games.map(game => {
+      return {
+        id: game.id,
+        name: game.name,
+        cover: game.cover ? {
+          image_id: game.cover.image_id
+        } : undefined,
+        screenshots: game.screenshots ? game.screenshots.map(screenshot => ({
+          image_id: screenshot.image_id
+        })) : []
+      };
+    });
   } catch (error) {
     console.error('Error searching game:', error);
     throw error;
