@@ -1,0 +1,10 @@
+{
+  "name": "sophsreviews-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for Soph's Game Reviews",
+  "main": "api.js",
+  "dependencies": {
+    "typescript": "^5.5.3",
+    "tsx": "^3.14.0"
+  }
+} 

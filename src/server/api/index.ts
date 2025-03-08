@@ -19,7 +19,7 @@ console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
 console.log('PORT:', process.env.PORT);
 console.log('Current working directory:', process.cwd());
 
-const app = express();
+export const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -125,7 +125,10 @@ app.post('/api/igdb/search', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Only start the server when running directly (not when imported by Netlify Functions)
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
