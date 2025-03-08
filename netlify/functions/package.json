@@ -5,6 +5,8 @@
   "main": "api.js",
   "dependencies": {
     "typescript": "^5.5.3",
-    "tsx": "^3.14.0"
+    "tsx": "^3.14.0",
+    "openai": "^4.85.3",
+    "@supabase/supabase-js": "^2.48.1"
   }
 } 

@@ -8,8 +8,17 @@
   # Increase timeout for AI operations
   [functions.api]
     timeout = 30
+  [functions.game-title]
+    timeout = 30
 
-# API routes should point to our api function
+# Redirect specific API endpoints to dedicated functions
+[[redirects]]
+  from = "/api/game-title"
+  to = "/.netlify/functions/game-title"
+  status = 200
+  force = true
+
+# API catch-all routes to the general api function
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
