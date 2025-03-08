@@ -11,9 +11,16 @@
   [functions.game-title]
     timeout = 30
 
-# Redirect specific API endpoints to dedicated functions
+# Redirect specific API endpoints to dedicated functions - handle both relative and absolute URLs
 [[redirects]]
   from = "/api/game-title"
+  to = "/.netlify/functions/game-title"
+  status = 200
+  force = true
+
+# Handle the absolute URL version as shown in the minified code
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/game-title"
   to = "/.netlify/functions/game-title"
   status = 200
   force = true
