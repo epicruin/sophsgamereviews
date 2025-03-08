@@ -217,6 +217,10 @@ exports.handler = async function(event, context) {
       // Use OpenAI for other sections
       console.log(`Using OpenAI API for ${section}`);
       
+      // Set different parameters based on the section
+      const maxTokens = section === 'fullReview' ? 8000 : 4000;
+      console.log(`Using max_tokens: ${maxTokens} for section: ${section}`);
+      
       const completion = await openai.chat.completions.create({
         messages: [
           {
@@ -230,12 +234,16 @@ exports.handler = async function(event, context) {
         ],
         model: "gpt-4o-mini",
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: maxTokens,
         response_format: { type: "text" },
       });
 
       const response = completion.choices[0].message.content;
       console.log(`OpenAI response received, length: ${response?.length || 0}`);
+      
+      if (response?.length > 100) {
+        console.log('Response snippet:', response.substring(0, 100) + '...');
+      }
 
       // For sections that expect JSON, parse the response
       if (section === "prosAndCons") {
@@ -268,12 +276,28 @@ exports.handler = async function(event, context) {
       
     } catch (error) {
       console.error('Error in AI request:', error);
+      // Check for specific OpenAI error types
+      let errorMessage = 'AI service error';
+      let statusCode = 500;
+      
+      if (error.response) {
+        console.error('OpenAI API Error Response:', error.response.status, error.response.data);
+        errorMessage = `OpenAI API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
+      } else if (error.message.includes('exceeded your current quota')) {
+        errorMessage = 'API quota exceeded';
+        statusCode = 429;
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out';
+        statusCode = 504;
+      }
+      
       return {
-        statusCode: 500,
+        statusCode,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          error: 'AI service error',
+          error: errorMessage,
           message: error.message,
+          section: section,
           stack: error.stack
         })
       };
