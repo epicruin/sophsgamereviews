@@ -218,60 +218,161 @@ exports.handler = async function(event, context) {
       console.log(`Using OpenAI API for ${section}`);
       
       // Set different parameters based on the section
-      const maxTokens = section === 'fullReview' ? 8000 : 4000;
+      const maxTokens = section === 'fullReview' ? 6000 : 4000; // Reduced from 8000 to 6000 for better reliability
       console.log(`Using max_tokens: ${maxTokens} for section: ${section}`);
       
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional Female game reviewer providing accurate information about video games. When writing full reviews, incorporate SEO best practices by naturally weaving in relevant keywords about the game's genre, platform, key features, and target audience throughout the text. However, never explicitly mention SEO or keywords in the review content itself."
-          },
-          {
-            role: "user",
-            content: prompts[section]
-          }
-        ],
-        model: "gpt-4o-mini",
-        temperature: 0.7,
-        max_tokens: maxTokens,
-        response_format: { type: "text" },
-      });
+      let attempts = 0;
+      const maxAttempts = 3;
+      let lastError = null;
+      let lastResponse = null;
 
-      const response = completion.choices[0].message.content;
-      console.log(`OpenAI response received, length: ${response?.length || 0}`);
-      
-      if (response?.length > 100) {
-        console.log('Response snippet:', response.substring(0, 100) + '...');
-      }
-
-      // For sections that expect JSON, parse the response
-      if (section === "prosAndCons") {
+      while (attempts < maxAttempts) {
         try {
-          const jsonMatch = response?.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            return {
-              statusCode: 200,
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
-            };
+          console.log(`Attempt ${attempts + 1} of ${maxAttempts} for ${section}`);
+          
+          const completion = await openai.chat.completions.create({
+            messages: [
+              {
+                role: "system",
+                content: section === 'fullReview' 
+                  ? `You are a professional Female game reviewer from England writing for a female gaming audience. Your task is to create engaging, informative game reviews that:
+                     1. Naturally incorporate relevant keywords about the game's genre, platform, features, and target audience
+                     2. Maintain a conversational yet professional tone
+                     3. Focus on aspects that particularly interest female gamers
+                     4. Provide specific examples and personal experiences
+                     5. Never explicitly mention SEO or keywords
+                     6. Include clear section headers (Introduction, Gameplay, etc.)
+                     7. End with a clear recommendation and rating`
+                  : "You are a professional Female game reviewer providing accurate information about video games. When writing full reviews, incorporate SEO best practices by naturally weaving in relevant keywords about the game's genre, platform, key features, and target audience throughout the text. However, never explicitly mention SEO or keywords in the review content itself."
+              },
+              {
+                role: "user",
+                content: prompts[section]
+              }
+            ],
+            model: "gpt-4o-mini",
+            temperature: 0.7,
+            max_tokens: maxTokens,
+            response_format: { type: "text" },
+          });
+
+          const response = completion.choices[0].message.content;
+          console.log(`OpenAI response received, length: ${response?.length || 0}`);
+          
+          // For fullReview, validate the response
+          if (section === 'fullReview') {
+            // Check minimum length (roughly 1000 words)
+            if (!response || response.length < 4000) {
+              console.log('Review too short:', response?.length);
+              throw new Error('Generated review is too short (less than 1000 words)');
+            }
+
+            // Check for required sections
+            const requiredSections = [
+              'Introduction',
+              'Gameplay',
+              'Story',
+              'Graphics',
+              'Sound',
+              'Target Audience',
+              'Rating',
+              'Recommendation'
+            ];
+
+            const missingElements = requiredSections.filter(section => 
+              !response.toLowerCase().includes(section.toLowerCase())
+            );
+
+            if (missingElements.length > 0) {
+              console.log('Missing sections:', missingElements);
+              throw new Error(`Review missing required sections: ${missingElements.join(', ')}`);
+            }
+
+            // Store this as our best response so far
+            lastResponse = response;
           }
-          throw new Error('No valid JSON found in response');
-        } catch (e) {
-          console.error('Failed to parse JSON response:', e);
+
+          if (response?.length > 100) {
+            console.log('Response snippet:', response.substring(0, 100) + '...');
+          }
+
+          // For sections that expect JSON, parse the response
+          if (section === "prosAndCons") {
+            try {
+              const jsonMatch = response?.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                return {
+                  statusCode: 200,
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
+                };
+              }
+              throw new Error('No valid JSON found in response');
+            } catch (e) {
+              console.error('Failed to parse JSON response:', e);
+              throw e; // Let the retry logic handle it
+            }
+          }
+
+          // For text sections, return as is
           return {
-            statusCode: 500,
+            statusCode: 200,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Failed to parse AI response' })
+            body: JSON.stringify({ [section]: response })
           };
+
+        } catch (error) {
+          lastError = error;
+          attempts++;
+          console.error(`Attempt ${attempts} failed for ${section}:`, error.message);
+          
+          // If it's not the last attempt, wait before retrying
+          if (attempts < maxAttempts) {
+            const delay = Math.min(2000 * Math.pow(2, attempts - 1), 8000); // Exponential backoff with 8s max
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
         }
       }
 
-      // For text sections, return as is
+      // If we get here, all attempts failed
+      console.error('All attempts failed for', section);
+      
+      // For fullReview, if we have a lastResponse that's not perfect but usable, return it
+      if (section === 'fullReview' && lastResponse && lastResponse.length >= 3000) {
+        console.log('Returning last best response despite validation failures');
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [section]: lastResponse })
+        };
+      }
+
+      // Otherwise, handle the error
+      let errorMessage = 'AI service error after multiple attempts';
+      let statusCode = 500;
+      
+      if (lastError?.response) {
+        console.error('OpenAI API Error Response:', lastError.response.status, lastError.response.data);
+        errorMessage = `OpenAI API Error: ${lastError.response.status} - ${JSON.stringify(lastError.response.data)}`;
+      } else if (lastError?.message.includes('exceeded your current quota')) {
+        errorMessage = 'API quota exceeded';
+        statusCode = 429;
+      } else if (lastError?.message.includes('timeout')) {
+        errorMessage = 'Request timed out';
+        statusCode = 504;
+      }
+      
       return {
-        statusCode: 200,
+        statusCode,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [section]: response })
+        body: JSON.stringify({ 
+          error: errorMessage,
+          message: lastError?.message,
+          section: section,
+          stack: lastError?.stack
+        })
       };
       
     } catch (error) {
