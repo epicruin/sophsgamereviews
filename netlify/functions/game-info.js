@@ -189,41 +189,76 @@ exports.handler = async function(event, context) {
         
         console.log(`Using Perplexity API for ${section}`);
         
-        const completion = await perplexity.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content: "You are a professional game information assistant. Your task is to search the internet and provide accurate, up-to-date information about video games. Always verify information from reliable sources and provide the most recent data available."
-            },
-            {
-              role: "user",
-              content: prompts[section]
-            }
-          ],
-          model: "sonar-pro",
-          temperature: 0.7,
-          max_tokens: 4000
-        });
-
-        const response = completion.choices[0].message.content;
-        console.log(`Perplexity response received, length: ${response?.length || 0}`);
-        
         try {
-          const jsonMatch = response?.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
+          // Set a timeout for the API call to prevent Netlify function timeouts
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('API request timed out')), 8000)
+          );
+          
+          const apiCallPromise = perplexity.chat.completions.create({
+            messages: [
+              {
+                role: "system",
+                content: "You are a professional game information assistant. Your task is to search the internet and provide accurate, up-to-date information about video games. Always verify information from reliable sources and provide the most recent data available."
+              },
+              {
+                role: "user",
+                content: prompts[section]
+              }
+            ],
+            model: "sonar-pro",
+            temperature: 0.7,
+            max_tokens: 4000
+          });
+          
+          // Race the API call against the timeout
+          const completion = await Promise.race([apiCallPromise, timeoutPromise]);
+          
+          const response = completion.choices[0].message.content;
+          console.log(`Perplexity response received, length: ${response?.length || 0}`);
+          
+          try {
+            const jsonMatch = response?.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              return {
+                statusCode: 200,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
+              };
+            }
+            throw new Error('No valid JSON found in response');
+          } catch (e) {
+            console.error('Failed to parse JSON response:', e);
             return {
-              statusCode: 200,
+              statusCode: 500,
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
+              body: JSON.stringify({ [section]: null })
             };
           }
-          throw new Error('No valid JSON found in response');
-        } catch (e) {
-          console.error('Failed to parse JSON response:', e);
+        } catch (error) {
+          console.error(`Perplexity API error for ${section}:`, error);
+          // Return a more specific error for timeouts
+          if (error.message === 'API request timed out') {
+            return {
+              statusCode: 504,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                error: 'API request timed out',
+                message: 'The request to the AI service took too long and timed out',
+                section: section
+              })
+            };
+          }
+          
+          // Generic error handling
           return {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [section]: null })
+            body: JSON.stringify({ 
+              error: 'AI service error',
+              message: error.message,
+              section: section
+            })
           };
         }
       }
@@ -231,54 +266,90 @@ exports.handler = async function(event, context) {
       // Use OpenAI for other sections
       console.log(`Using OpenAI API for ${section}`);
       
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional Female game reviewer providing accurate information about video games. When writing full reviews, incorporate SEO best practices by naturally weaving in relevant keywords about the game's genre, platform, key features, and target audience throughout the text. However, never explicitly mention SEO or keywords in the review content itself."
-          },
-          {
-            role: "user",
-            content: prompts[section]
-          }
-        ],
-        model: "gpt-4o-mini",
-        temperature: 0.7,
-        max_tokens: 4000,
-        response_format: { type: "text" },
-      });
+      try {
+        // Set a timeout for the API call to prevent Netlify function timeouts
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('API request timed out')), 8000)
+        );
+        
+        const apiCallPromise = openai.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional Female game reviewer providing accurate information about video games. When writing full reviews, incorporate SEO best practices by naturally weaving in relevant keywords about the game's genre, platform, key features, and target audience throughout the text. However, never explicitly mention SEO or keywords in the review content itself."
+            },
+            {
+              role: "user",
+              content: prompts[section]
+            }
+          ],
+          model: "gpt-4o-mini",
+          temperature: 0.7,
+          max_tokens: section === 'fullReview' ? 3000 : 4000, // Reduce tokens for full review to avoid timeouts
+          response_format: { type: "text" },
+        });
+        
+        // Race the API call against the timeout
+        const completion = await Promise.race([apiCallPromise, timeoutPromise]);
 
-      const response = completion.choices[0].message.content;
-      console.log(`OpenAI response received, length: ${response?.length || 0}`);
-      
-      // For sections that expect JSON, parse the response
-      if (section === "prosAndCons") {
-        try {
-          const jsonMatch = response?.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
+        const response = completion.choices[0].message.content;
+        console.log(`OpenAI response received, length: ${response?.length || 0}`);
+        
+        // For sections that expect JSON, parse the response
+        if (section === "prosAndCons") {
+          try {
+            const jsonMatch = response?.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              return {
+                statusCode: 200,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
+              };
+            }
+            throw new Error('No valid JSON found in response');
+          } catch (e) {
+            console.error('Failed to parse JSON response:', e);
             return {
-              statusCode: 200,
+              statusCode: 500,
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
+              body: JSON.stringify({ [section]: null })
             };
           }
-          throw new Error('No valid JSON found in response');
-        } catch (e) {
-          console.error('Failed to parse JSON response:', e);
+        }
+
+        // For text sections, return as is
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [section]: response })
+        };
+      } catch (error) {
+        console.error(`OpenAI API error for ${section}:`, error);
+        
+        // Return a more specific error for timeouts
+        if (error.message === 'API request timed out') {
           return {
-            statusCode: 500,
+            statusCode: 504,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [section]: null })
+            body: JSON.stringify({ 
+              error: 'API request timed out',
+              message: 'The request to the AI service took too long and timed out',
+              section: section
+            })
           };
         }
+        
+        // Generic error handling
+        return {
+          statusCode: 500,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            error: 'AI service error',
+            message: error.message,
+            section: section
+          })
+        };
       }
-
-      // For text sections, return as is
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [section]: response })
-      };
     } catch (error) {
       console.error('Error in AI request:', error);
       return {

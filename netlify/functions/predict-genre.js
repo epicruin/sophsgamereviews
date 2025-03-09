@@ -52,14 +52,19 @@ exports.handler = async function(event, context) {
     const genre = completion.choices[0].message.content?.trim();
     console.log(`Predicted genre: ${genre}`);
     
+    // Convert genreList to array if it's a string
+    const genreArray = typeof genreList === 'string' 
+      ? genreList.split(',').map(g => g.trim())
+      : genreList;
+    
     // Validate the response is in the genreList
-    if (!genre || !genreList.some(g => g.toLowerCase() === genre.toLowerCase())) {
+    if (!genre || !genreArray.some(g => g.toLowerCase() === genre.toLowerCase())) {
       console.warn(`Predicted genre "${genre}" is not in the provided genre list`);
       // Fall back to the first genre
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ genre: genreList[0] })
+        body: JSON.stringify({ genre: genreArray[0] })
       };
     }
     
