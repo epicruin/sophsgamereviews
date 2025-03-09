@@ -248,7 +248,7 @@ exports.handler = async function(event, context) {
       try {
         // Special handling for fullReview to ensure it doesn't timeout
         if (section === 'fullReview') {
-          console.log('Using chunked approach for fullReview to avoid timeouts');
+          console.log('Using parallel chunked approach for fullReview to avoid timeouts');
           
           // Define each section based on the original prompt structure
           const sectionPrompts = [
@@ -258,30 +258,29 @@ exports.handler = async function(event, context) {
             },
             {
               section: "gameplay",
-              prompt: `Continue the review by writing about the gameplay experience (2-3 paragraphs) for ${gameTitle}. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic. This is a continuation, so don't reintroduce the game.`
+              prompt: `Write about the gameplay experience (2-3 paragraphs) for ${gameTitle}. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic. This section will be combined with others to form a complete review.`
             },
             {
               section: "story",
-              prompt: `Continue the review by exploring the story and narrative elements (2-3 paragraphs) of ${gameTitle}. Provide enough intrigue without spoiling key plot points. This is a continuation of the previous sections.`
+              prompt: `Write about the story and narrative elements (2-3 paragraphs) of ${gameTitle}. Provide enough intrigue without spoiling key plot points. This section will be combined with others to form a complete review.`
             },
             {
               section: "presentation",
-              prompt: `Continue the review by evaluating the graphics and sound (2-3 paragraphs) of ${gameTitle}. Highlight standout elements and areas for improvement. This is a continuation of the previous sections.`
+              prompt: `Write about the graphics and sound (2-3 paragraphs) of ${gameTitle}. Highlight standout elements and areas for improvement. This section will be combined with others to form a complete review.`
             },
             {
               section: "audience",
-              prompt: `Continue the review by discussing the target audience (1-2 paragraphs) for ${gameTitle}. Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing. This is a continuation of the previous sections.`
+              prompt: `Write about the target audience (1-2 paragraphs) for ${gameTitle}. Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing. This section will be combined with others to form a complete review.`
             },
             {
               section: "conclusion",
-              prompt: `Conclude the review (2-3 paragraphs) for ${gameTitle} with an overall rating and recommendation. Explain your reasoning and specify who would enjoy this game most. You may use a tone similar to: "Right, ladies, let's wrap this up!" This is the final section of the review.`
+              prompt: `Write a conclusion (2-3 paragraphs) for ${gameTitle} with an overall rating and recommendation. Explain your reasoning and specify who would enjoy this game most. You may use a tone similar to: "Right, ladies, let's wrap this up!" This will be the final section of the review.`
             }
           ];
           
-          // Generate each section sequentially to maintain flow
-          let combinedReview = '';
-          
-          for (const sectionPrompt of sectionPrompts) {
+          // Generate each section in parallel for speed
+          console.log('Generating all sections in parallel for speed');
+          const results = await Promise.all(sectionPrompts.map(async (sectionPrompt) => {
             console.log(`Generating ${sectionPrompt.section} section for fullReview`);
             
             try {
@@ -292,22 +291,12 @@ exports.handler = async function(event, context) {
                     content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
                     
                     Example tone (adapt to fit the specific game):
-                    "Right, ladies, let's talk about this game! This brilliant little gem has completely stolen my heart. From the charming visuals to the addictive gameplay, it's a must-have for any fan of the genre."
-                    
-                    ${combinedReview ? "This is a continuation of previous sections. Don't introduce the game again or repeat information already covered." : ""}`
+                    "Right, ladies, let's talk about this game! This brilliant little gem has completely stolen my heart. From the charming visuals to the addictive gameplay, it's a must-have for any fan of the genre."`
                   },
                   {
                     role: "user",
                     content: sectionPrompt.prompt
-                  },
-                  ...(combinedReview ? [{
-                    role: "user",
-                    content: `Here's what you've written so far (partial):
-                    
-                    ${combinedReview.substring(0, 500)}... [truncated]
-                    
-                    Continue from this, keeping the same style and voice. Don't repeat information or reintroduce the game.`
-                  }] : [])
+                  }
                 ],
                 model: "gpt-4o-mini",
                 temperature: 0.7,
@@ -315,15 +304,15 @@ exports.handler = async function(event, context) {
                 response_format: { type: "text" },
               });
               
-              const sectionText = completion.choices[0].message.content;
-              combinedReview += (combinedReview && !combinedReview.endsWith('\n\n') ? '\n\n' : '') + sectionText;
-              
+              return completion.choices[0].message.content;
             } catch (error) {
               console.error(`Error generating ${sectionPrompt.section} section:`, error);
-              combinedReview += `\n\n[Error generating ${sectionPrompt.section} section]`;
+              return `[Error generating ${sectionPrompt.section} section]`;
             }
-          }
+          }));
           
+          // Combine all sections into a full review
+          const combinedReview = results.join('\n\n');
           console.log(`Full review generated, total length: ${combinedReview.length}`);
           
           return {
