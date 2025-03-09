@@ -246,6 +246,79 @@ exports.handler = async function(event, context) {
       console.log(`Using OpenAI API for ${section}`);
       
       try {
+        // Special handling for fullReview to ensure it doesn't timeout
+        if (section === 'fullReview') {
+          console.log('Using chunked approach for fullReview to avoid timeouts');
+          
+          // Break the review into sections to avoid timeouts
+          const sectionPrompts = [
+            {
+              section: "introduction",
+              prompt: `Write an engaging introduction (2-3 paragraphs) for a review of the game ${gameTitle} from the perspective of a female game reviewer from England. Include the game's genre, platform, and key features. Hook the reader with your initial impressions.`
+            },
+            {
+              section: "gameplay",
+              prompt: `Write about the gameplay experience (2-3 paragraphs) for the game ${gameTitle}. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make it relatable.`
+            },
+            {
+              section: "story",
+              prompt: `Write about the story and narrative (2-3 paragraphs) for the game ${gameTitle}. Explore the game's story, characters, and narrative elements without spoiling key plot points.`
+            },
+            {
+              section: "presentation",
+              prompt: `Write about the graphics and sound (2-3 paragraphs) for the game ${gameTitle}. Evaluate the visual presentation, art style, and sound design. Highlight standout elements and areas for improvement.`
+            },
+            {
+              section: "audience",
+              prompt: `Write about the target audience (1-2 paragraphs) for the game ${gameTitle}. Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing.`
+            },
+            {
+              section: "conclusion",
+              prompt: `Write a conclusion (2-3 paragraphs) for a review of the game ${gameTitle}, including an overall rating and recommendation. Explain your reasoning and specify who would enjoy this game most.`
+            }
+          ];
+          
+          // Generate each section in parallel
+          const results = await Promise.all(sectionPrompts.map(async (sectionPrompt) => {
+            console.log(`Generating ${sectionPrompt.section} section for fullReview`);
+            
+            try {
+              const completion = await openai.chat.completions.create({
+                messages: [
+                  {
+                    role: "system",
+                    content: "You are a professional female game reviewer from England writing for a female gaming audience. Write in an engaging, conversational tone."
+                  },
+                  {
+                    role: "user",
+                    content: sectionPrompt.prompt
+                  }
+                ],
+                model: "gpt-4o-mini",
+                temperature: 0.7,
+                max_tokens: 800, // Smaller token count for each section
+                response_format: { type: "text" },
+              });
+              
+              return completion.choices[0].message.content;
+            } catch (error) {
+              console.error(`Error generating ${sectionPrompt.section} section:`, error);
+              return `[Error generating ${sectionPrompt.section} section]`;
+            }
+          }));
+          
+          // Combine all sections into a full review
+          const combinedReview = results.join('\n\n');
+          console.log(`Full review generated, total length: ${combinedReview.length}`);
+          
+          return {
+            statusCode: 200,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [section]: combinedReview })
+          };
+        }
+        
+        // Normal handling for other sections
         const completion = await openai.chat.completions.create({
           messages: [
             {
