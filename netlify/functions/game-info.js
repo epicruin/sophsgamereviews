@@ -248,119 +248,76 @@ exports.handler = async function(event, context) {
       try {
         // Special handling for fullReview to ensure it doesn't timeout
         if (section === 'fullReview') {
-          console.log('Using hybrid batched approach for fullReview to avoid timeouts');
+          console.log('Using parallel chunked approach for fullReview to avoid timeouts');
           
-          // Define each section with proper continuation phrases
+          // Define each section based on the original prompt structure
           const sectionPrompts = [
             {
               section: "introduction",
-              prompt: `Write an engaging introduction (2-3 paragraphs) for a review of ${gameTitle} from the perspective of a female game reviewer from England. Include the game's genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy. You can start with phrases like "Right, ladies" or similar.`
+              prompt: `Write an engaging introduction (2-3 paragraphs) for a review of ${gameTitle} from the perspective of a female game reviewer from England. Include the game's genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy.
+              
+              Start with a greeting like "Right, ladies" or "Alright, ladies" as this will be the beginning of the review.`
             },
             {
               section: "gameplay",
-              prompt: `Write about the gameplay experience (2-3 paragraphs) for ${gameTitle}. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments. DO NOT reintroduce the game or use phrases like "Let's dive into" as this is a continuation of the review.`
+              prompt: `Write about the gameplay experience (2-3 paragraphs) for ${gameTitle}. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic. 
+              
+              IMPORTANT: This is the second section of a review that has already begun. DO NOT start with "Alright, ladies" or any other greeting. DO NOT introduce the game again. Begin as if continuing a conversation already in progress.`
             },
             {
               section: "story",
-              prompt: `Write about the story and narrative elements (2-3 paragraphs) of ${gameTitle}. Explore characters, plot, and narrative elements without spoiling key points. DO NOT use phrases like "Alright, ladies" or "Let's dive into" as this is a continuation of the review.`
+              prompt: `Write about the story and narrative elements (2-3 paragraphs) of ${gameTitle}. Explore the game's story, characters, and narrative elements without spoiling key plot points.
+              
+              IMPORTANT: This is the middle section of a review that has already covered the introduction and gameplay. DO NOT start with "Alright, ladies" or any other greeting. DO NOT reintroduce the game. Begin as if continuing directly from a previous section about gameplay.`
             },
             {
               section: "presentation",
-              prompt: `Write about the graphics and sound (2-3 paragraphs) of ${gameTitle}. Highlight standout elements and areas for improvement. DO NOT use phrases like "Alright, ladies" or "Let's dive into" as this is a continuation of the review.`
+              prompt: `Write about the graphics and sound (2-3 paragraphs) of ${gameTitle}. Highlight standout elements and areas for improvement.
+              
+              IMPORTANT: This is a continuation of an ongoing review. DO NOT start with "Alright, ladies" or any other greeting. DO NOT reintroduce the game. Begin as if continuing directly from previous sections about gameplay and story.`
             },
             {
               section: "audience",
-              prompt: `Write about the target audience (1-2 paragraphs) for ${gameTitle}. Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing. DO NOT use phrases like "Alright, ladies" or "Let's dive into" as this is a continuation of the review.`
+              prompt: `Write about the target audience (1-2 paragraphs) for ${gameTitle}. Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing.
+              
+              IMPORTANT: This is a continuation of an ongoing review. DO NOT start with "Alright, ladies" or any other greeting. DO NOT reintroduce the game. Begin as if continuing directly from previous sections.`
             },
             {
               section: "conclusion",
-              prompt: `Write a conclusion (2-3 paragraphs) for ${gameTitle} with an overall rating (out of 10) and recommendation. Explain your reasoning and specify who would enjoy this game most. You may use phrases like "Right, ladies, let's wrap this up!" or similar to indicate this is the conclusion.`
+              prompt: `Write a conclusion (2-3 paragraphs) for ${gameTitle} with an overall rating and recommendation. Explain your reasoning and specify who would enjoy this game most.
+              
+              IMPORTANT: This is the final section of an ongoing review. You may begin with a phrase like "To wrap things up" or similar, but DO NOT start with "Alright, ladies" or reintroduce the game. End with a catchy closing line that a female reviewer from England might use.`
             }
           ];
           
-          // Generate in two batches: first intro+gameplay, then the rest
-          let combinedReview = '';
-          
-          // First batch: intro and gameplay
-          console.log('Generating first batch: intro and gameplay');
-          const firstBatch = await Promise.all([
-            (async () => {
-              try {
-                const completion = await openai.chat.completions.create({
-                  messages: [
-                    {
-                      role: "system",
-                      content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the introduction section of a game review about ${gameTitle}.`
-                    },
-                    {
-                      role: "user",
-                      content: sectionPrompts[0].prompt
-                    }
-                  ],
-                  model: "gpt-4o-mini",
-                  temperature: 0.7,
-                  max_tokens: 800,
-                  response_format: { type: "text" },
-                });
-                return completion.choices[0].message.content;
-              } catch (error) {
-                console.error(`Error generating introduction section:`, error);
-                return `[Error generating introduction section]`;
-              }
-            })(),
-            (async () => {
-              try {
-                const completion = await openai.chat.completions.create({
-                  messages: [
-                    {
-                      role: "system",
-                      content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the gameplay section of a game review - it comes AFTER the introduction.`
-                    },
-                    {
-                      role: "user",
-                      content: sectionPrompts[1].prompt
-                    }
-                  ],
-                  model: "gpt-4o-mini",
-                  temperature: 0.7,
-                  max_tokens: 800,
-                  response_format: { type: "text" },
-                });
-                return completion.choices[0].message.content;
-              } catch (error) {
-                console.error(`Error generating gameplay section:`, error);
-                return `[Error generating gameplay section]`;
-              }
-            })()
-          ]);
-          
-          // Add first batch to combined review
-          combinedReview = firstBatch.join('\n\n');
-          
-          // Second batch: story, presentation, audience, conclusion
-          console.log('Generating second batch: story, presentation, audience, conclusion');
-          
-          // Prepare a context snippet from the first batch
-          const contextSnippet = combinedReview.substring(0, 200) + '...' + 
-                                 combinedReview.substring(combinedReview.length - 200);
-          
-          const secondBatch = await Promise.all([2, 3, 4, 5].map(async (i) => {
+          // Generate each section in parallel for speed
+          console.log('Generating all sections in parallel for speed');
+          const results = await Promise.all(sectionPrompts.map(async (sectionPrompt) => {
+            console.log(`Generating ${sectionPrompt.section} section for fullReview`);
+            
             try {
               const completion = await openai.chat.completions.create({
                 messages: [
                   {
                     role: "system",
-                    content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the ${sectionPrompts[i].section} section of a game review.
+                    content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
                     
-                    IMPORTANT: The review has already started. DO NOT begin with "Alright, ladies" or "Let's dive into" or reintroduce the game. This is a CONTINUATION of an existing review.`
+                    IMPORTANT CONTEXT: This is part of a multi-section review where each section will be combined into a single cohesive review:
+                    - Introduction: Sets up the review with "Alright, ladies" and introduces the game
+                    - Gameplay: Continues the review (no greeting, no reintroduction)
+                    - Story: Continues about narrative (no greeting, no reintroduction)
+                    - Presentation: Continues about graphics/sound (no greeting, no reintroduction)
+                    - Audience: Continues about who would enjoy it (no greeting, no reintroduction)
+                    - Conclusion: Wraps everything up (no greeting, no reintroduction)
+                    
+                    Write ONLY your assigned section (${sectionPrompt.section}) in a way that flows naturally when combined with the others.
+                    
+                    Example tone (adapt to fit the specific game):
+                    "This brilliant little gem has completely stolen my heart. From the charming visuals to the addictive gameplay, it's a must-have for any fan of the genre."`
                   },
                   {
                     role: "user",
-                    content: `You are writing a review of ${gameTitle}. The review has already begun. Here's a snippet of what's been written so far:
-                    
-                    ${contextSnippet}
-                    
-                    Now, ${sectionPrompts[i].prompt}`
+                    content: sectionPrompt.prompt
                   }
                 ],
                 model: "gpt-4o-mini",
@@ -368,16 +325,24 @@ exports.handler = async function(event, context) {
                 max_tokens: 800,
                 response_format: { type: "text" },
               });
+              
               return completion.choices[0].message.content;
             } catch (error) {
-              console.error(`Error generating ${sectionPrompts[i].section} section:`, error);
-              return `[Error generating ${sectionPrompts[i].section} section]`;
+              console.error(`Error generating ${sectionPrompt.section} section:`, error);
+              return `[Error generating ${sectionPrompt.section} section]`;
             }
           }));
           
-          // Add second batch to combined review
-          combinedReview += '\n\n' + secondBatch.join('\n\n');
-          
+          // Combine all sections into a full review with subtle section transitions
+          const sectionsWithHeaders = [
+            results[0], // Introduction (no header needed)
+            "\n\n" + results[1], // Gameplay 
+            "\n\n" + results[2], // Story
+            "\n\n" + results[3], // Presentation
+            "\n\n" + results[4], // Audience
+            "\n\n" + results[5]  // Conclusion
+          ];
+          const combinedReview = sectionsWithHeaders.join('');
           console.log(`Full review generated, total length: ${combinedReview.length}`);
           
           return {
