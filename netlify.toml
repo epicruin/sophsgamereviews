@@ -7,17 +7,17 @@
   node_bundler = "esbuild"
   # Increase timeout for AI operations
   [functions.api]
-    timeout = 30
+    timeout = 120
   [functions.game-title]
-    timeout = 30
+    timeout = 120
   [functions.game-info]
-    timeout = 30
+    timeout = 120
   [functions.chat]
-    timeout = 30
+    timeout = 120
   [functions.predict-genre]
-    timeout = 30
+    timeout = 120
   [functions.igdb-search]
-    timeout = 30
+    timeout = 60
 
 # Redirect specific API endpoints to dedicated functions - handle both relative and absolute URLs
 [[redirects]]

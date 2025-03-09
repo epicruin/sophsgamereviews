@@ -190,12 +190,7 @@ exports.handler = async function(event, context) {
         console.log(`Using Perplexity API for ${section}`);
         
         try {
-          // Set a timeout for the API call to prevent Netlify function timeouts
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('API request timed out')), 8000)
-          );
-          
-          const apiCallPromise = perplexity.chat.completions.create({
+          const completion = await perplexity.chat.completions.create({
             messages: [
               {
                 role: "system",
@@ -210,9 +205,6 @@ exports.handler = async function(event, context) {
             temperature: 0.7,
             max_tokens: 4000
           });
-          
-          // Race the API call against the timeout
-          const completion = await Promise.race([apiCallPromise, timeoutPromise]);
           
           const response = completion.choices[0].message.content;
           console.log(`Perplexity response received, length: ${response?.length || 0}`);
@@ -237,20 +229,7 @@ exports.handler = async function(event, context) {
           }
         } catch (error) {
           console.error(`Perplexity API error for ${section}:`, error);
-          // Return a more specific error for timeouts
-          if (error.message === 'API request timed out') {
-            return {
-              statusCode: 504,
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                error: 'API request timed out',
-                message: 'The request to the AI service took too long and timed out',
-                section: section
-              })
-            };
-          }
           
-          // Generic error handling
           return {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json' },
@@ -267,12 +246,7 @@ exports.handler = async function(event, context) {
       console.log(`Using OpenAI API for ${section}`);
       
       try {
-        // Set a timeout for the API call to prevent Netlify function timeouts
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('API request timed out')), 8000)
-        );
-        
-        const apiCallPromise = openai.chat.completions.create({
+        const completion = await openai.chat.completions.create({
           messages: [
             {
               role: "system",
@@ -285,12 +259,9 @@ exports.handler = async function(event, context) {
           ],
           model: "gpt-4o-mini",
           temperature: 0.7,
-          max_tokens: section === 'fullReview' ? 3000 : 4000, // Reduce tokens for full review to avoid timeouts
+          max_tokens: 4000,
           response_format: { type: "text" },
         });
-        
-        // Race the API call against the timeout
-        const completion = await Promise.race([apiCallPromise, timeoutPromise]);
 
         const response = completion.choices[0].message.content;
         console.log(`OpenAI response received, length: ${response?.length || 0}`);
@@ -326,20 +297,6 @@ exports.handler = async function(event, context) {
       } catch (error) {
         console.error(`OpenAI API error for ${section}:`, error);
         
-        // Return a more specific error for timeouts
-        if (error.message === 'API request timed out') {
-          return {
-            statusCode: 504,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              error: 'API request timed out',
-              message: 'The request to the AI service took too long and timed out',
-              section: section
-            })
-          };
-        }
-        
-        // Generic error handling
         return {
           statusCode: 500,
           headers: { 'Content-Type': 'application/json' },
