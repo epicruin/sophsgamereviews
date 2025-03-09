@@ -26,68 +26,76 @@ exports.handler = async function(event, context) {
       return {
         statusCode: 400,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Missing message parameter' })
+        body: JSON.stringify({ error: 'Missing required parameter: message' })
       };
     }
     
-    // Initialize Perplexity client using OpenAI format
+    if (!Array.isArray(history)) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'History must be an array' })
+      };
+    }
+    
+    // Initialize OpenAI client for main OpenAI API
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+    
+    // Initialize OpenAI client for Perplexity API
     const perplexity = new OpenAI({
       apiKey: process.env.PERPLEXITY_API_KEY,
       baseURL: 'https://api.perplexity.ai'
     });
-    
-    console.log('Processing chat request');
     
     // Create form context if form data is provided
     let formContext = '';
     if (formData && genres) {
       const selectedGenre = genres.find(g => g.id === formData.genreId)?.name || 'Not selected';
       formContext = formData ? `Current form state:
-Title: ${formData.title || 'Not set'}
+Title: ${formData.title}
 Genre: ${selectedGenre}
-Rating: ${formData.rating || 'Not set'}
-Homepage Sections: ${formData.homepage_sections || 'Not set'}
-Excerpt: ${formData.excerpt || 'Not set'}
-Content: ${formData.content ? (formData.content.length > 500 ? formData.content.substring(0, 500) + '...' : formData.content) : 'Not set'}
-Pros: ${formData.pros && formData.pros.length ? formData.pros.join(', ') : 'None listed'}
-Cons: ${formData.cons && formData.cons.length ? formData.cons.join(', ') : 'None listed'}
+Rating: ${formData.rating}
+Homepage Sections: ${formData.homepage_sections}
+Excerpt: ${formData.excerpt}
+Content: ${formData.content}
+Pros: ${formData.pros.join(', ')}
+Cons: ${formData.cons.join(', ')}
 
 Awards:
-${formData.awards && formData.awards.length && formData.award_dates ? 
-  formData.awards.map((award, index) => `- ${award} (${formData.award_dates[award]})`).join('\n') : 
-  'None listed'}
+${formData.awards.map((award, index) => `- ${award} (${new Date(formData.award_dates[award]).toLocaleDateString()})`).join('\n')}
 
 Release Details:
-- Developer: ${formData.developer || 'Not set'}
-- Publisher: ${formData.publisher || 'Not set'}
-- Age Rating: ${formData.ageRating || 'Not set'}
-- Price: $${formData.priceUSD || '0'}, £${formData.priceGBP || '0'}, €${formData.priceEUR || '0'}
-- Release Date: ${formData.releaseDate || 'Not set'}
-- Systems: ${formData.systems && formData.systems.length ? formData.systems.join(', ') : 'None listed'}
+- Developer: ${formData.developer}
+- Publisher: ${formData.publisher}
+- Age Rating: ${formData.ageRating}
+- Price: $${formData.priceUSD}, £${formData.priceGBP}, €${formData.priceEUR}
+- Release Date: ${new Date(formData.releaseDate).toLocaleDateString()}
+- Systems: ${formData.systems.join(', ')}
 
 Multiplayer Details:
 - Online Co-Op: ${formData.online_coop ? 'Yes' : 'No'}
 - Couch Co-Op: ${formData.couch_coop ? 'Yes' : 'No'}
 - Split Screen: ${formData.split_screen ? 'Yes' : 'No'}
-- Maximum Players: ${formData.max_players || '0'}
+- Maximum Players: ${formData.max_players}
 
 System Requirements:
-${formData.specifications ? `
 Minimum:
-- OS: ${formData.specifications.minimum?.os || 'Not set'}
-- Processor: ${formData.specifications.minimum?.processor || 'Not set'}
-- Memory: ${formData.specifications.minimum?.memory || 'Not set'}
-- Graphics: ${formData.specifications.minimum?.graphics || 'Not set'}
-- Storage: ${formData.specifications.minimum?.storage || 'Not set'}
+- OS: ${formData.specifications.minimum.os}
+- Processor: ${formData.specifications.minimum.processor}
+- Memory: ${formData.specifications.minimum.memory}
+- Graphics: ${formData.specifications.minimum.graphics}
+- Storage: ${formData.specifications.minimum.storage}
 
 Recommended:
-- OS: ${formData.specifications.recommended?.os || 'Not set'}
-- Processor: ${formData.specifications.recommended?.processor || 'Not set'}
-- Memory: ${formData.specifications.recommended?.memory || 'Not set'}
-- Graphics: ${formData.specifications.recommended?.graphics || 'Not set'}
-- Storage: ${formData.specifications.recommended?.storage || 'Not set'}` : 'Not set'}` : '';
+- OS: ${formData.specifications.recommended.os}
+- Processor: ${formData.specifications.recommended.processor}
+- Memory: ${formData.specifications.recommended.memory}
+- Graphics: ${formData.specifications.recommended.graphics}
+- Storage: ${formData.specifications.recommended.storage}` : '';
     }
-    
+
     const messages = [
       {
         role: "system",
@@ -164,10 +172,6 @@ RESPONSE GUIDELINES:
    - Be explicit about what information is/isn't available
    - Use specific examples from the current review
    - Maintain context across the conversation
-   - ALWAYS reference the actual review content when answering questions about the review
-   - If asked about game qualities, DIRECTLY QUOTE relevant parts of the review
-   - NEVER make up information that isn't in the review
-   - Recognize when questions are about the review itself versus questions about game reviews in general
 
 3. When Making Suggestions
    - Base suggestions on existing content
@@ -189,17 +193,6 @@ CRITICAL RULES:
 5. CONSIDER the relationships between different sections
 6. VERIFY technical details for consistency
 7. RESPECT the review's current state and progress
-8. When asked about "the review", ALWAYS answer in context of THIS specific review's content
-9. If asked "what do you think of the review", analyze the actual current review content
-10. NEVER use web search when discussing the review itself
-
-USING WEB SEARCH APPROPRIATELY:
-1. USE web search ONLY when explicitly asked to verify specific information about games, release dates, developers, etc.
-2. When answering questions about the CURRENT REVIEW, NEVER use web search - rely entirely on the form data
-3. If asked to "check if X is correct", you may use web search to verify factual information
-4. ALWAYS prioritize the review's content over web search results when discussing the review itself
-5. CLEARLY distinguish when you're providing information from the review versus from web search
-6. DO NOT cite web sources with numbered references like [1] or [2] unless specifically asked to provide citations
 
 ERROR HANDLING:
 1. If asked about missing content:
@@ -212,16 +205,6 @@ ERROR HANDLING:
    - Reference the specific fields involved
    - Suggest potential resolutions
 
-HANDLING "WHAT DO YOU THINK" QUESTIONS:
-When asked questions like "what do you think of the review":
-1. ALWAYS analyze the actual review content in the form
-2. Provide specific feedback on the review's strengths and weaknesses
-3. Reference concrete examples from the Content, Pros, and Cons
-4. Compare elements like writing style, detail level, and completeness
-5. Suggest potential improvements based on what's already in the review
-6. NEVER respond with general information about what makes a good review
-7. NEVER cite external sources or reference numbered citations
-
 Your primary goal is to assist in creating comprehensive, accurate game reviews while maintaining strict adherence to the actual form data available to you.`
       },
       formContext ? {
@@ -231,36 +214,30 @@ Your primary goal is to assist in creating comprehensive, accurate game reviews 
       ...history.map(m => ({ role: m.role, content: m.content })),
       { role: "user", content: message }
     ].filter(Boolean);
+
+    console.log('Processing chat with Perplexity API');
     
-    console.log('Sending chat request to Perplexity with', messages.length, 'messages');
-    
-    // Create a completion using Perplexity's Sonar model
     const completion = await perplexity.chat.completions.create({
       messages: messages,
       model: "sonar",
       temperature: 0.7,
       max_tokens: 4000,
-      extra_body: {
-        web_search: true // Enable web search but with careful instructions
-      }
     });
-    
-    const response = completion.choices[0].message.content;
-    console.log(`Chat response received, length: ${response?.length || 0}`);
+
+    const content = completion.choices[0].message.content;
     
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ response })
+      body: JSON.stringify({ content })
     };
-    
   } catch (error) {
     console.error('Error in chat function:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        error: 'Failed to process chat request',
+        error: 'Failed to process chat message',
         message: error.message,
         stack: error.stack
       })

@@ -1,5 +1,32 @@
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Ensure environment variables are loaded
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// Debug OpenAI key
+console.log('OpenAI Key exists in game-info.js:', !!process.env.OPENAI_API_KEY);
+
+// Initialize OpenAI client (server-side only)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY // Server-side environment variable
+});
+
+// Initialize Perplexity client using OpenAI format
+const perplexity = new OpenAI({
+  apiKey: process.env.PERPLEXITY_API_KEY,
+  baseURL: 'https://api.perplexity.ai'
+});
+
+// Function to validate user session
+async function validateSession(supabaseClient, userId) {
+  const { data: isAdmin } = await supabaseClient.rpc('is_admin', {
+    user_id: userId
+  });
+  return isAdmin;
+}
 
 exports.handler = async function(event, context) {
   // Log incoming request for debugging
@@ -33,17 +60,6 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
-    
-    // Initialize Perplexity client
-    const perplexity = new OpenAI({
-      apiKey: process.env.PERPLEXITY_API_KEY,
-      baseURL: 'https://api.perplexity.ai'
-    });
-    
     // Initialize Supabase client
     const supabase = createClient(
       process.env.SUPABASE_URL,
@@ -51,11 +67,9 @@ exports.handler = async function(event, context) {
     );
     
     // Validate user session
-    const { data: isAdmin } = await supabase.rpc('is_admin', {
-      user_id: userId
-    });
+    const isAuthorized = await validateSession(supabase, userId);
     
-    if (!isAdmin) {
+    if (!isAuthorized) {
       return {
         statusCode: 403,
         headers: { 'Content-Type': 'application/json' },
@@ -193,7 +207,7 @@ exports.handler = async function(event, context) {
 
         const response = completion.choices[0].message.content;
         console.log(`Perplexity response received, length: ${response?.length || 0}`);
-
+        
         try {
           const jsonMatch = response?.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
@@ -209,7 +223,7 @@ exports.handler = async function(event, context) {
           return {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Failed to parse AI response' })
+            body: JSON.stringify({ [section]: null })
           };
         }
       }
@@ -217,189 +231,63 @@ exports.handler = async function(event, context) {
       // Use OpenAI for other sections
       console.log(`Using OpenAI API for ${section}`);
       
-      // Set different parameters based on the section
-      const maxTokens = section === 'fullReview' ? 6000 : 4000; // Reduced from 8000 to 6000 for better reliability
-      console.log(`Using max_tokens: ${maxTokens} for section: ${section}`);
+      const completion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional Female game reviewer providing accurate information about video games. When writing full reviews, incorporate SEO best practices by naturally weaving in relevant keywords about the game's genre, platform, key features, and target audience throughout the text. However, never explicitly mention SEO or keywords in the review content itself."
+          },
+          {
+            role: "user",
+            content: prompts[section]
+          }
+        ],
+        model: "gpt-4o-mini",
+        temperature: 0.7,
+        max_tokens: 4000,
+        response_format: { type: "text" },
+      });
+
+      const response = completion.choices[0].message.content;
+      console.log(`OpenAI response received, length: ${response?.length || 0}`);
       
-      let attempts = 0;
-      const maxAttempts = 3;
-      let lastError = null;
-      let lastResponse = null;
-
-      while (attempts < maxAttempts) {
+      // For sections that expect JSON, parse the response
+      if (section === "prosAndCons") {
         try {
-          console.log(`Attempt ${attempts + 1} of ${maxAttempts} for ${section}`);
-          
-          const completion = await openai.chat.completions.create({
-            messages: [
-              {
-                role: "system",
-                content: section === 'fullReview' 
-                  ? `You are a professional Female game reviewer from England writing for a female gaming audience. Your task is to create engaging, informative game reviews that:
-                     1. Naturally incorporate relevant keywords about the game's genre, platform, features, and target audience
-                     2. Maintain a conversational yet professional tone
-                     3. Focus on aspects that particularly interest female gamers
-                     4. Provide specific examples and personal experiences
-                     5. Never explicitly mention SEO or keywords
-                     6. Include clear section headers (Introduction, Gameplay, etc.)
-                     7. End with a clear recommendation and rating`
-                  : "You are a professional Female game reviewer providing accurate information about video games. When writing full reviews, incorporate SEO best practices by naturally weaving in relevant keywords about the game's genre, platform, key features, and target audience throughout the text. However, never explicitly mention SEO or keywords in the review content itself."
-              },
-              {
-                role: "user",
-                content: prompts[section]
-              }
-            ],
-            model: "gpt-4o-mini",
-            temperature: 0.7,
-            max_tokens: maxTokens,
-            response_format: { type: "text" },
-          });
-
-          const response = completion.choices[0].message.content;
-          console.log(`OpenAI response received, length: ${response?.length || 0}`);
-          
-          // For fullReview, validate the response
-          if (section === 'fullReview') {
-            // Check minimum length (roughly 1000 words)
-            if (!response || response.length < 4000) {
-              console.log('Review too short:', response?.length);
-              throw new Error('Generated review is too short (less than 1000 words)');
-            }
-
-            // Check for required sections
-            const requiredSections = [
-              'Introduction',
-              'Gameplay',
-              'Story',
-              'Graphics',
-              'Sound',
-              'Target Audience',
-              'Rating',
-              'Recommendation'
-            ];
-
-            const missingElements = requiredSections.filter(section => 
-              !response.toLowerCase().includes(section.toLowerCase())
-            );
-
-            if (missingElements.length > 0) {
-              console.log('Missing sections:', missingElements);
-              throw new Error(`Review missing required sections: ${missingElements.join(', ')}`);
-            }
-
-            // Store this as our best response so far
-            lastResponse = response;
+          const jsonMatch = response?.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return {
+              statusCode: 200,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
+            };
           }
-
-          if (response?.length > 100) {
-            console.log('Response snippet:', response.substring(0, 100) + '...');
-          }
-
-          // For sections that expect JSON, parse the response
-          if (section === "prosAndCons") {
-            try {
-              const jsonMatch = response?.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                return {
-                  statusCode: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ [section]: JSON.parse(jsonMatch[0]) })
-                };
-              }
-              throw new Error('No valid JSON found in response');
-            } catch (e) {
-              console.error('Failed to parse JSON response:', e);
-              throw e; // Let the retry logic handle it
-            }
-          }
-
-          // For text sections, return as is
+          throw new Error('No valid JSON found in response');
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
           return {
-            statusCode: 200,
+            statusCode: 500,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [section]: response })
+            body: JSON.stringify({ [section]: null })
           };
-
-        } catch (error) {
-          lastError = error;
-          attempts++;
-          console.error(`Attempt ${attempts} failed for ${section}:`, error.message);
-          
-          // If it's not the last attempt, wait before retrying
-          if (attempts < maxAttempts) {
-            const delay = Math.min(2000 * Math.pow(2, attempts - 1), 8000); // Exponential backoff with 8s max
-            console.log(`Waiting ${delay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          }
         }
       }
 
-      // If we get here, all attempts failed
-      console.error('All attempts failed for', section);
-      
-      // For fullReview, if we have a lastResponse that's not perfect but usable, return it
-      if (section === 'fullReview' && lastResponse && lastResponse.length >= 3000) {
-        console.log('Returning last best response despite validation failures');
-        return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [section]: lastResponse })
-        };
-      }
-
-      // Otherwise, handle the error
-      let errorMessage = 'AI service error after multiple attempts';
-      let statusCode = 500;
-      
-      if (lastError?.response) {
-        console.error('OpenAI API Error Response:', lastError.response.status, lastError.response.data);
-        errorMessage = `OpenAI API Error: ${lastError.response.status} - ${JSON.stringify(lastError.response.data)}`;
-      } else if (lastError?.message.includes('exceeded your current quota')) {
-        errorMessage = 'API quota exceeded';
-        statusCode = 429;
-      } else if (lastError?.message.includes('timeout')) {
-        errorMessage = 'Request timed out';
-        statusCode = 504;
-      }
-      
+      // For text sections, return as is
       return {
-        statusCode,
+        statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          error: errorMessage,
-          message: lastError?.message,
-          section: section,
-          stack: lastError?.stack
-        })
+        body: JSON.stringify({ [section]: response })
       };
-      
     } catch (error) {
       console.error('Error in AI request:', error);
-      // Check for specific OpenAI error types
-      let errorMessage = 'AI service error';
-      let statusCode = 500;
-      
-      if (error.response) {
-        console.error('OpenAI API Error Response:', error.response.status, error.response.data);
-        errorMessage = `OpenAI API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
-      } else if (error.message.includes('exceeded your current quota')) {
-        errorMessage = 'API quota exceeded';
-        statusCode = 429;
-      } else if (error.message.includes('timeout')) {
-        errorMessage = 'Request timed out';
-        statusCode = 504;
-      }
-      
       return {
-        statusCode,
+        statusCode: 500,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          error: errorMessage,
+          error: 'AI service error',
           message: error.message,
-          section: section,
-          stack: error.stack
+          section: section
         })
       };
     }
@@ -411,9 +299,9 @@ exports.handler = async function(event, context) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: 'Failed to generate game info',
-        message: error.message,
-        stack: error.stack
+        message: error.message
       })
     };
   }
-}; 
+};
+

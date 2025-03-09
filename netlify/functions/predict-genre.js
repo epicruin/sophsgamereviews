@@ -38,16 +38,14 @@ exports.handler = async function(event, context) {
     console.log(`Available genres:`, genreList);
     
     // Prepare the prompt
-    const prompt = `I have a video game titled "${title}". Based on this title alone, which of the following genres do you think it most likely belongs to? Please select ONLY ONE genre from this list:\n${genreList.join(', ')}\n\nRespond with ONLY the genre name, nothing else.`;
+    const prompt = `Given the video game "${title}", which ONE genre from this list best fits it: ${genreList}? Reply with ONLY the exact genre name.`;
     
     // Create a completion
     const completion = await openai.chat.completions.create({
-      messages: [
-        { role: "user", content: prompt }
-      ],
+      messages: [{ role: "user", content: prompt }],
       model: "gpt-4o-mini",
-      temperature: 0.3,
-      max_tokens: 30,
+      temperature: 0.7,
+      max_tokens: 50,
       response_format: { type: "text" },
     });
     
@@ -83,4 +81,4 @@ exports.handler = async function(event, context) {
       })
     };
   }
-}; 
+};
