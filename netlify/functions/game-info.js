@@ -295,41 +295,64 @@ exports.handler = async function(event, context) {
           const results = await Promise.all(sectionPrompts.map(async (sectionPrompt) => {
             console.log(`Generating ${sectionPrompt.section} section for fullReview`);
             
-            try {
-              const completion = await openai.chat.completions.create({
-                messages: [
-                  {
-                    role: "system",
-                    content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
-                    
-                    IMPORTANT CONTEXT: This is part of a multi-section review where each section will be combined into a single cohesive review:
-                    - Introduction: Sets up the review with "Alright, ladies" and introduces the game
-                    - Gameplay: Continues the review (no greeting, no reintroduction)
-                    - Story: Continues about narrative (no greeting, no reintroduction)
-                    - Presentation: Continues about graphics/sound (no greeting, no reintroduction)
-                    - Audience: Continues about who would enjoy it (no greeting, no reintroduction)
-                    - Conclusion: Wraps everything up (no greeting, no reintroduction)
-                    
-                    Write ONLY your assigned section (${sectionPrompt.section}) in a way that flows naturally when combined with the others.
-                    
-                    Example tone (adapt to fit the specific game):
-                    "This brilliant little gem has completely stolen my heart. From the charming visuals to the addictive gameplay, it's a must-have for any fan of the genre."`
-                  },
-                  {
-                    role: "user",
-                    content: sectionPrompt.prompt
-                  }
-                ],
-                model: "gpt-4o-mini",
-                temperature: 0.7,
-                max_tokens: 800,
-                response_format: { type: "text" },
-              });
-              
-              return completion.choices[0].message.content;
-            } catch (error) {
-              console.error(`Error generating ${sectionPrompt.section} section:`, error);
-              return `[Error generating ${sectionPrompt.section} section]`;
+            // Add retry logic with exponential backoff
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount <= maxRetries) {
+              try {
+                if (retryCount > 0) {
+                  console.log(`Retry ${retryCount}/${maxRetries} for ${sectionPrompt.section} section`);
+                }
+                
+                const completion = await openai.chat.completions.create({
+                  messages: [
+                    {
+                      role: "system",
+                      content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
+                      
+                      IMPORTANT CONTEXT: This is part of a multi-section review where each section will be combined into a single cohesive review:
+                      - Introduction: Sets up the review with "Alright, ladies" and introduces the game
+                      - Gameplay: Continues the review (no greeting, no reintroduction)
+                      - Story: Continues about narrative (no greeting, no reintroduction)
+                      - Presentation: Continues about graphics/sound (no greeting, no reintroduction)
+                      - Audience: Continues about who would enjoy it (no greeting, no reintroduction)
+                      - Conclusion: Wraps everything up (no greeting, no reintroduction)
+                      
+                      Write ONLY your assigned section (${sectionPrompt.section}) in a way that flows naturally when combined with the others.
+                      
+                      Example tone (adapt to fit the specific game):
+                      "This brilliant little gem has completely stolen my heart. From the charming visuals to the addictive gameplay, it's a must-have for any fan of the genre."`
+                    },
+                    {
+                      role: "user",
+                      content: sectionPrompt.prompt
+                    }
+                  ],
+                  model: "gpt-4o-mini",
+                  temperature: 0.7,
+                  max_tokens: 800,
+                  response_format: { type: "text" },
+                });
+                
+                // If successful, return the content
+                return completion.choices[0].message.content;
+              } catch (error) {
+                console.error(`Error generating ${sectionPrompt.section} section (attempt ${retryCount+1}/${maxRetries+1}):`, error);
+                
+                // Check if we should retry
+                retryCount++;
+                
+                if (retryCount <= maxRetries) {
+                  // Exponential backoff: 2^retry * 500ms (0.5s, 1s, 2s)
+                  const backoffTime = Math.pow(2, retryCount) * 500;
+                  console.log(`Retrying ${sectionPrompt.section} section in ${backoffTime}ms...`);
+                  await new Promise(resolve => setTimeout(resolve, backoffTime));
+                } else {
+                  // All retries exhausted
+                  return `[Error generating ${sectionPrompt.section} section. Please try again.]`;
+                }
+              }
             }
           }));
           
@@ -345,10 +368,64 @@ exports.handler = async function(event, context) {
           const combinedReview = sectionsWithHeaders.join('');
           console.log(`Full review generated, total length: ${combinedReview.length}`);
           
+          // Check if too many sections failed
+          const failedSectionCount = results.filter(section => 
+            section && section.includes('[Error generating')).length;
+          
+          // If more than 1 section failed, try a fallback approach with a single API call
+          if (failedSectionCount > 1) {
+            console.log(`${failedSectionCount} sections failed. Attempting fallback with single API call...`);
+            
+            try {
+              const fallbackCompletion = await openai.chat.completions.create({
+                messages: [
+                  {
+                    role: "system",
+                    content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. Create a complete game review for ${gameTitle}.
+                    
+                    Format your review with these sections:
+                    1. Introduction with a greeting like "Alright, ladies"
+                    2. Gameplay section
+                    3. Story section
+                    4. Presentation section (graphics/sound)
+                    5. Target audience section
+                    6. Conclusion with recommendation
+                    
+                    Keep the review concise but informative.`
+                  },
+                  {
+                    role: "user",
+                    content: `Write a complete review for ${gameTitle}. Start with "Alright, ladies" and structure it to cover gameplay, story, presentation, who would enjoy it, and end with your recommendation. Keep it authentic and conversational as if you're speaking directly to your audience.`
+                  }
+                ],
+                model: "gpt-4o-mini",
+                temperature: 0.7,
+                max_tokens: 3000,
+                response_format: { type: "text" },
+              });
+              
+              const fallbackReview = fallbackCompletion.choices[0].message.content;
+              console.log(`Generated fallback review, length: ${fallbackReview.length}`);
+              
+              // Use the fallback review if it's reasonably long (>500 characters)
+              if (fallbackReview && fallbackReview.length > 500) {
+                return {
+                  statusCode: 200,
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ fullReview: fallbackReview })
+                };
+              }
+            } catch (fallbackError) {
+              console.error('Error generating fallback review:', fallbackError);
+              // Continue with the original combined review even if it has errors
+            }
+          }
+          
+          // Return the original combined review (either if fallback wasn't needed or fallback also failed)
           return {
             statusCode: 200,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [section]: combinedReview })
+            body: JSON.stringify({ fullReview: combinedReview })
           };
         }
         
