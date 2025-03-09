@@ -73,6 +73,7 @@ interface GameProgress {
     status: GenerationStatus;
     error?: string;
   }>;
+  expanded?: boolean;
 }
 
 const GENERATION_STEPS: { key: GenerationStep; label: string }[] = [
@@ -615,16 +616,53 @@ export const AIReviewSpinner = ({ onReviewCreated }: { onReviewCreated: () => vo
             <div className="mt-4 space-y-2">
               {progress.map((game, gameIndex) => (
                 <div key={gameIndex} className="border rounded p-3">
-                  <div className="flex items-center justify-between">
+                  <div 
+                    className={`flex items-center justify-between ${isGameFailed(game) ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (isGameFailed(game)) {
+                        // Toggle expanded state for this game
+                        setProgress(prev => 
+                          prev.map((g, idx) => 
+                            idx === gameIndex ? { ...g, expanded: !g.expanded } : g
+                          )
+                        );
+                      }
+                    }}
+                  >
                     <h4 className="font-medium">{game.title}</h4>
-                    <GameStatusIcon game={game} />
+                    <div className="flex items-center gap-2">
+                      {isGameFailed(game) && (
+                        <span className="text-xs text-gray-500">
+                          {game.expanded ? "Hide details" : "Show details"}
+                        </span>
+                      )}
+                      <GameStatusIcon game={game} />
+                    </div>
                   </div>
                   
-                  {(isGameInProgress(game) || isGameFailed(game)) && (
-                    <div className="mt-2 space-y-2">
+                  {/* Always show details for in-progress games */}
+                  {isGameInProgress(game) && (
+                    <div className="mt-2 space-y-1">
                       {GENERATION_STEPS.map(step => (
                         <div key={step.key} className="flex items-center justify-between text-sm">
                           <span>{step.label}</span>
+                          <StatusIcon 
+                            status={game.steps[step.key].status} 
+                            error={game.steps[step.key].error}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Only show details for failed games if expanded */}
+                  {isGameFailed(game) && game.expanded === true && (
+                    <div className="mt-2 space-y-1 border-t pt-2">
+                      {GENERATION_STEPS.map(step => (
+                        <div key={step.key} className="flex items-center justify-between text-sm">
+                          <span className={game.steps[step.key].status === 'error' ? 'font-medium text-red-500' : ''}>
+                            {step.label}
+                          </span>
                           <StatusIcon 
                             status={game.steps[step.key].status} 
                             error={game.steps[step.key].error}
