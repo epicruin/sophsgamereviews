@@ -18,6 +18,10 @@
     timeout = 120
   [functions.igdb-search]
     timeout = 60
+  [functions.article-content]
+    timeout = 120
+  [functions.image-search]
+    timeout = 120
 
 # Redirect specific API endpoints to dedicated functions - handle both relative and absolute URLs
 [[redirects]]
@@ -50,6 +54,18 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/article-content"
+  to = "/.netlify/functions/article-content"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/image-search"
+  to = "/.netlify/functions/image-search"
+  status = 200
+  force = true
+
 # Handle the absolute URL versions as shown in the minified code
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/game-title"
@@ -78,6 +94,18 @@
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/igdb/search"
   to = "/.netlify/functions/igdb-search"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/article-content"
+  to = "/.netlify/functions/article-content"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://sophsgamereviews.netlify.app/api/image-search"
+  to = "/.netlify/functions/image-search"
   status = 200
   force = true
 
