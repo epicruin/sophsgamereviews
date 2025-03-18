@@ -1,10 +1,23 @@
-const { validateRequest } = require('../utils/auth');
+const { createClient } = require('@supabase/supabase-js');
 const { OpenAI } = require('openai');
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Ensure environment variables are loaded
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Initialize OpenAI API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Function to validate user session
+async function validateSession(supabaseClient, userId) {
+  const { data: isAdmin } = await supabaseClient.rpc('is_admin', {
+    user_id: userId
+  });
+  return isAdmin;
+}
 
 exports.handler = async function(event, context) {
   try {
@@ -20,20 +33,26 @@ exports.handler = async function(event, context) {
     const body = JSON.parse(event.body);
     const { articleTitle, section, userId } = body;
 
-    // Validate user authorization
-    try {
-      await validateRequest(event, userId);
-    } catch (error) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: error.message || 'Unauthorized access' })
-      };
-    }
-
-    if (!section) {
+    if (!section || !userId) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Missing required parameters' })
+      };
+    }
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+    
+    // Validate user session
+    const isAuthorized = await validateSession(supabase, userId);
+    
+    if (!isAuthorized) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Unauthorized access' })
       };
     }
 
