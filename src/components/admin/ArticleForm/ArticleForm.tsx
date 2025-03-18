@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,37 +11,74 @@ import { toast } from "sonner";
 import { ArticleFormProps, ArticleFormData, initialFormData } from "./types";
 import { ArticleAIGenerateButton } from "@/components/ui/article-ai-generate-button";
 
+// Default placeholder image for articles
+const DEFAULT_IMAGE = "https://placehold.co/1200x630?text=Gaming+Article";
+
 export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   const [formData, setFormData] = useState<ArticleFormData>(
     articleData ? {
       title: articleData.title,
       summary: articleData.summary,
       content: articleData.content,
-      tldr: articleData.tldr,
-      image: articleData.image,
+      tldr: articleData.tldr || "",
+      image: articleData.image || DEFAULT_IMAGE,
       scheduled_for: articleData.scheduled_for ? new Date(articleData.scheduled_for).toISOString().slice(0, 16) : null,
-    } : initialFormData
+    } : {
+      ...initialFormData,
+      image: DEFAULT_IMAGE // Set default image
+    }
   );
 
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Validation function
+  const validateForm = (): boolean => {
+    if (!formData.title.trim()) {
+      toast.error("Please enter a title");
+      return false;
+    }
+    if (!formData.summary.trim()) {
+      toast.error("Please enter a summary");
+      return false;
+    }
+    if (!formData.content.trim()) {
+      toast.error("Please enter content");
+      return false;
+    }
+    if (!formData.image.trim()) {
+      // Set default image if empty
+      setFormData(prev => ({ ...prev, image: DEFAULT_IMAGE }));
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) return;
+    
     setIsLoading(true);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No session found");
 
+      const now = new Date().toISOString();
+      
+      // Ensure image has a value
+      const image = formData.image.trim() || DEFAULT_IMAGE;
+      
       const articleFormData = {
-        title: formData.title,
-        summary: formData.summary,
-        content: formData.content,
-        tldr: formData.tldr,
-        image: formData.image,
+        title: formData.title.trim(),
+        summary: formData.summary.trim(),
+        content: formData.content.trim(),
+        tldr: formData.tldr.trim() || null, // Allow null for tldr
+        image: image,
         author_id: session.user.id,
         scheduled_for: formData.scheduled_for,
+        updated_at: now,
       };
 
       let article;
@@ -58,18 +95,25 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
         article = data;
         toast.success("Article updated successfully");
       } else {
-        // Create new article
+        // Create new article with created_at timestamp
         const { data, error: insertError } = await supabase
           .from("articles")
-          .insert(articleFormData)
+          .insert({
+            ...articleFormData,
+            created_at: now
+          })
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          throw insertError;
+        }
         article = data;
         toast.success("Article created successfully");
       }
       
+      console.log("Saved article:", article);
       navigate("/admin/dashboard");
     } catch (error: any) {
       console.error('Error saving article:', error);
