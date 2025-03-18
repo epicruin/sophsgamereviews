@@ -11,6 +11,18 @@ import { toast } from "sonner";
 import { ArticleFormProps, ArticleFormData, initialFormData } from "./types";
 
 export const ArticleForm = ({ articleData }: ArticleFormProps) => {
+  // Format datetime for input element (needs YYYY-MM-DDThh:mm format)
+  const formatDateForInput = (dateString: string | null): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      // Format to YYYY-MM-DDThh:mm
+      return date.toISOString().slice(0, 16);
+    } catch (e) {
+      return '';
+    }
+  };
+
   const [formData, setFormData] = useState<ArticleFormData>(
     articleData ? {
       id: articleData.id,
@@ -212,7 +224,7 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
               type="datetime-local"
               id="scheduled_for"
               name="scheduled_for"
-              value={formData.scheduled_for || ''}
+              value={formatDateForInput(formData.scheduled_for)}
               onChange={(e) => setFormData(prev => ({ ...prev, scheduled_for: e.target.value || null }))}
               className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
             />
