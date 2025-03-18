@@ -7,6 +7,7 @@ import { AuroraBackground } from "@/components/home/AuroraBackground";
 import { AuroraBackgroundBlue } from "@/components/home/AuroraBackgroundBlue";
 import { ShootingStarsBackground } from "@/components/home/ShootingStarsBackground";
 import { SectionsCarousel } from "@/components/home/SectionsCarousel";
+import { LatestArticlesSection } from "@/components/home/LatestArticlesSection";
 import { 
   Star, 
   Medal, 
@@ -383,6 +384,10 @@ const Index = () => {
       
       <section id="carousel-sections" className="mb-0 pb-0">
         <SectionsCarousel sections={orderedSections} />
+      </section>
+
+      <section id="latest-articles" className="mt-12">
+        <LatestArticlesSection />
       </section>
     </div>
   );

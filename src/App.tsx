@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Home, Lock } from "lucide-react";
 import Index from "@/pages/Index";
 import SingleReview from "@/pages/singleReview";
+import Articles from "@/pages/Articles";
+import SingleArticle from "@/pages/singleArticle";
 import NotFound from "@/pages/NotFound";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -137,6 +139,8 @@ function AppContainer() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/reviews/:id" element={<SingleReview />} />
+        <Route path="/articles" element={<Articles />} />
+        <Route path="/articles/:id" element={<SingleArticle />} />
         <Route path="/genre/:genreName" element={<Genre />} />
         <Route path="/author/:username" element={<Author />} />
         <Route path="/sections/featured" element={<FeaturedReviews />} />
