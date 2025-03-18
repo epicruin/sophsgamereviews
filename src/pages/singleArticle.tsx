@@ -9,6 +9,8 @@ import { StaticStarsBackground } from "@/components/home/StaticStarsBackground";
 import { AuroraBackground } from "@/components/home/AuroraBackground";
 import { ShootingStarsBackground } from "@/components/home/ShootingStarsBackground";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ArticleData {
   id: string;
@@ -106,13 +108,6 @@ const SingleArticle = () => {
     );
   }
 
-  // Format the content with paragraph breaks
-  const formattedContent = article.content.split("\n").map((paragraph, index) => (
-    <p key={index} className="mb-6 text-lg text-muted-foreground leading-relaxed">
-      {paragraph}
-    </p>
-  ));
-
   return (
     <div className="min-h-screen relative">
       <StaticStarsBackground />
@@ -186,9 +181,11 @@ const SingleArticle = () => {
           )}
           
           <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md">
-            <div className="prose prose-lg max-w-none">
-              {formattedContent}
-            </div>
+            <article className="prose prose-lg dark:prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {article.content}
+              </ReactMarkdown>
+            </article>
           </Card>
           
           {article.tldr && (
