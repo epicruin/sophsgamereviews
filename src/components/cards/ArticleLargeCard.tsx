@@ -1,4 +1,4 @@
-import { BookOpen, UserRound } from "lucide-react";
+import { BookOpen, UserRound, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ interface ArticleLargeCardProps {
     name: string;
     avatar: string;
   };
+  likes?: number;
   isModal?: boolean;
   onArticleClick?: () => void;
 }
@@ -24,6 +25,7 @@ export const ArticleLargeCard = ({
   imagePosition = 50,
   excerpt,
   author,
+  likes = 0,
   isModal = false,
   onArticleClick
 }: ArticleLargeCardProps) => {
@@ -75,10 +77,10 @@ export const ArticleLargeCard = ({
             </p>
           </div>
 
-          {/* Bottom section containing author info only now */}
+          {/* Bottom section containing author info and likes */}
           <div className="p-1.5 sm:p-2 md:p-3">
-            {/* Author */}
-            <div className="flex items-center justify-center">
+            {/* Author and likes */}
+            <div className="flex items-center justify-between">
               <Link to={`/author/${author.name}`} className="flex items-center gap-1 group/author min-w-0">
                 <Avatar className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ring-1 ring-white/20 flex-shrink-0">
                   <AvatarImage src={author.avatar} alt={author.name} />
@@ -89,6 +91,12 @@ export const ArticleLargeCard = ({
                   <span className="relative">{author.name}</span>
                 </span>
               </Link>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Heart 
+                  className={`w-3 sm:w-3.5 h-3 sm:h-3.5 text-rose-500 ${likes > 0 ? 'fill-rose-500' : ''}`}
+                />
+                <span className="text-[8px] sm:text-[10px] md:text-xs font-medium text-white">{likes}</span>
+              </div>
             </div>
           </div>
         </div>
