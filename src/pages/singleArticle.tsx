@@ -178,13 +178,6 @@ const SingleArticle = () => {
       {/* Content - positioned to overlap the fading hero image */}
       <div className="relative z-10 container mx-auto px-4 -mt-32">
         <div className="w-full max-w-3xl mx-auto">
-          {article.tldr && (
-            <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md border-rose-500/20">
-              <h2 className="text-xl font-semibold mb-4 gradient-text">TL;DR</h2>
-              <p className="text-muted-foreground leading-relaxed">{article.tldr}</p>
-            </Card>
-          )}
-          
           {article.summary && (
             <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md">
               <h2 className="text-xl font-semibold mb-4 gradient-text">Summary</h2>
@@ -197,6 +190,13 @@ const SingleArticle = () => {
               {formattedContent}
             </div>
           </Card>
+          
+          {article.tldr && (
+            <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md border-rose-500/20">
+              <h2 className="text-xl font-semibold mb-4 gradient-text">TL;DR</h2>
+              <p className="text-muted-foreground leading-relaxed">{article.tldr}</p>
+            </Card>
+          )}
           
           <div className="flex justify-between items-center mt-12 mb-24">
             <Button variant="outline" asChild>
