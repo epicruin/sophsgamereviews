@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleFormProps, ArticleFormData, initialFormData } from "./types";
-import { ArticleAIGenerateButton } from "@/components/ui/article-ai-generate-button";
 
 export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   const [formData, setFormData] = useState<ArticleFormData>(
     articleData ? {
+      id: articleData.id,
       title: articleData.title,
       summary: articleData.summary,
       content: articleData.content,
       tldr: articleData.tldr,
       image: articleData.image,
-      scheduled_for: articleData.scheduled_for ? new Date(articleData.scheduled_for).toISOString().slice(0, 16) : null,
+      scheduled_for: articleData.scheduled_for || null,
+      published_date: articleData.published_date || null
     } : initialFormData
   );
 
@@ -28,118 +30,169 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      toast.success("Form submitted successfully (UI only, no actual save)");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session found");
+
+      const now = new Date().toISOString();
+      
+      // Determine if we need to set published_date
+      // If there's no published_date and no scheduled_for, then this is a direct publish now
+      const shouldPublish = !formData.published_date && !formData.scheduled_for;
+      
+      // Prepare article data for database
+      const articleSubmitData = {
+        title: formData.title,
+        summary: formData.summary,
+        content: formData.content,
+        tldr: formData.tldr,
+        image: formData.image,
+        author_id: session.user.id,
+        updated_at: now,
+        scheduled_for: formData.scheduled_for,
+        published_date: shouldPublish ? now : formData.published_date
+      };
+
+      let result;
+      if (articleData) {
+        // Update existing article
+        const { data, error } = await supabase
+          .from("articles")
+          .update(articleSubmitData)
+          .eq('id', articleData.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        toast.success("Article updated successfully");
+      } else {
+        // Create new article
+        const { data, error } = await supabase
+          .from("articles")
+          .insert({
+            ...articleSubmitData,
+            created_at: now
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        toast.success("Article created successfully");
+      }
+
+      navigate("/admin/dashboard");
+    } catch (error: any) {
+      console.error("Error saving article:", error);
+      toast.error(`Failed to ${articleData ? 'update' : 'create'} article: ${error.message}`);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleFormUpdate = (field: keyof ArticleFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Basic Information */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Article Details</h3>
+        <div className="relative flex justify-end items-center mb-4">
+          <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Basic Information</h3>
+        </div>
         <div className="space-y-4">
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="title">Title</Label>
-              <ArticleAIGenerateButton
-                articleTitle={formData.title}
-                section="title"
-                onGenerated={(content) => handleFormUpdate('title', content)}
-              />
-            </div>
             <Input
               id="title"
-              placeholder="Article Title"
+              name="title"
               value={formData.title}
-              onChange={(e) => handleFormUpdate('title', e.target.value)}
+              onChange={handleChange}
+              placeholder="Article Title"
               required
             />
           </div>
           
           <div>
-            <Label htmlFor="image">Featured Image URL</Label>
-            <Input
-              id="image"
-              placeholder="Image URL"
-              value={formData.image}
-              onChange={(e) => handleFormUpdate('image', e.target.value)}
-              required
-            />
-            {formData.image && (
-              <div className="mt-2">
-                <img 
-                  src={formData.image} 
-                  alt="Preview" 
-                  className="max-h-40 rounded-md object-cover" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Invalid+Image';
-                  }}
-                />
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="summary">Summary</Label>
-              <ArticleAIGenerateButton
-                articleTitle={formData.title}
-                section="summary"
-                onGenerated={(content) => handleFormUpdate('summary', content)}
-              />
-            </div>
             <Textarea
               id="summary"
-              placeholder="A brief summary of the article"
+              name="summary"
               value={formData.summary}
-              onChange={(e) => handleFormUpdate('summary', e.target.value)}
-              required
+              onChange={handleChange}
+              placeholder="Summary (brief description)"
               rows={3}
+              required
             />
           </div>
-          
+        </div>
+      </Card>
+      
+      {/* Image */}
+      <Card className="p-6">
+        <div className="relative flex justify-end items-center mb-4">
+          <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Featured Image</h3>
+        </div>
+        <div className="space-y-4">
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="content">Article Content</Label>
-              <ArticleAIGenerateButton
-                articleTitle={formData.title}
-                section="content"
-                onGenerated={(content) => handleFormUpdate('content', content)}
+            <Input
+              id="image"
+              name="image"
+              value={formData.image}
+              onChange={handleChange}
+              placeholder="Image URL"
+              required
+            />
+          </div>
+          {formData.image && (
+            <div className="mt-4">
+              <img 
+                src={formData.image} 
+                alt="Article preview" 
+                className="max-h-60 rounded-md object-cover"
               />
             </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Article Content */}
+      <Card className="p-6">
+        <div className="relative flex justify-end items-center mb-4">
+          <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Article Content</h3>
+        </div>
+        <div className="space-y-4">
+          <div>
             <Textarea
               id="content"
-              placeholder="Full article content (supports markdown)"
+              name="content"
               value={formData.content}
-              onChange={(e) => handleFormUpdate('content', e.target.value)}
+              onChange={handleChange}
+              placeholder="Main article content"
+              rows={10}
               required
-              rows={15}
             />
           </div>
-          
+        </div>
+      </Card>
+
+      {/* TL;DR */}
+      <Card className="p-6">
+        <div className="relative flex justify-end items-center mb-4">
+          <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">TL;DR</h3>
+        </div>
+        <div className="space-y-4">
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="tldr">TL;DR</Label>
-              <ArticleAIGenerateButton
-                articleTitle={formData.title}
-                section="tldr"
-                onGenerated={(content) => handleFormUpdate('tldr', content)}
-              />
-            </div>
             <Textarea
               id="tldr"
-              placeholder="A concise TL;DR summary"
+              name="tldr"
               value={formData.tldr}
-              onChange={(e) => handleFormUpdate('tldr', e.target.value)}
-              required
+              onChange={handleChange}
+              placeholder="Too Long; Didn't Read summary"
               rows={3}
+              required
             />
           </div>
         </div>
@@ -157,15 +210,16 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
           <div className="flex items-center gap-2">
             <input
               type="datetime-local"
-              id="scheduleTime"
+              id="scheduled_for"
+              name="scheduled_for"
               value={formData.scheduled_for || ''}
-              onChange={(e) => handleFormUpdate('scheduled_for', e.target.value || null)}
+              onChange={(e) => setFormData(prev => ({ ...prev, scheduled_for: e.target.value || null }))}
               className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
             />
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleFormUpdate('scheduled_for', null)}
+              onClick={() => setFormData(prev => ({ ...prev, scheduled_for: null }))}
             >
               Clear Schedule
             </Button>

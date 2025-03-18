@@ -17,13 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
+  TabsTrigger,
 } from "@/components/ui/tabs";
-import { useConfirm } from "@/hooks/useConfirm";
 
 interface Review {
   id: string;
@@ -37,22 +37,6 @@ interface Review {
   homepage_sections: string[];
 }
 
-interface Article {
-  id: string;
-  title: string;
-  summary: string;
-  content: string;
-  tldr: string | null;
-  image: string;
-  created_at: string;
-  scheduled_for: string | null;
-  author_id: string;
-  author: {
-    username: string | null;
-    avatar_url: string | null;
-  } | null;
-}
-
 interface Profile {
   username: string | null;
   avatar_url: string | null;
@@ -64,11 +48,19 @@ interface Genre {
   name: string;
 }
 
+interface Article {
+  id: string;
+  title: string;
+  summary: string;
+  created_at: string;
+  scheduled_for: string | null;
+  author_id: string;
+  published_date: string | null;
+}
+
 const AdminDashboard = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [scheduledReviews, setScheduledReviews] = useState<Review[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [scheduledArticles, setScheduledArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<Profile>({ username: null, avatar_url: null, bio: null });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
@@ -80,17 +72,20 @@ const AdminDashboard = () => {
   const [newCustomSectionName, setNewCustomSectionName] = useState("");
   const [isUpdatingCustomSection, setIsUpdatingCustomSection] = useState(false);
   const [bio, setBio] = useState("");
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [scheduledArticles, setScheduledArticles] = useState<Article[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(true);
   const navigate = useNavigate();
   const { confirm, ConfirmationDialog } = useConfirm();
 
   useEffect(() => {
     checkAdmin();
     fetchReviews();
-    fetchArticles();
     fetchProfile();
     fetchGenres();
     fetchCurrentGenreOfMonth();
     fetchCustomSectionName();
+    fetchArticles();
   }, []);
 
   const checkAdmin = async () => {
@@ -531,61 +526,60 @@ const AdminDashboard = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
-      // Fetch regular articles (published or not)
-      const { data: articlesData, error: articlesError } = await supabase
+      
+      const now = new Date().toISOString();
+      
+      // Fetch published articles
+      const { data: publishedData, error: publishedError } = await supabase
         .from('articles')
-        .select(`
-          *,
-          author:profiles(username, avatar_url)
-        `)
+        .select('*')
+        .eq('author_id', session.user.id)
+        .not('published_date', 'is', null)
         .is('scheduled_for', null)
-        .is('published_date', null)
         .order('created_at', { ascending: false });
-
-      if (articlesError) throw articlesError;
-      setArticles(articlesData || []);
-
+      
+      if (publishedError) throw publishedError;
+      
       // Fetch scheduled articles
-      const { data: scheduledArticlesData, error: scheduledError } = await supabase
+      const { data: scheduledData, error: scheduledError } = await supabase
         .from('articles')
-        .select(`
-          *,
-          author:profiles(username, avatar_url)
-        `)
+        .select('*')
+        .eq('author_id', session.user.id)
         .not('scheduled_for', 'is', null)
-        .is('published_date', null)
         .order('scheduled_for', { ascending: true });
-
+      
       if (scheduledError) throw scheduledError;
-      setScheduledArticles(scheduledArticlesData || []);
+      
+      setArticles(publishedData || []);
+      setScheduledArticles(scheduledData || []);
     } catch (error) {
-      console.error('Error fetching articles:', error);
-      toast.error('Failed to load articles');
+      console.error("Error fetching articles:", error);
+      toast.error("Failed to load articles");
+    } finally {
+      setLoadingArticles(false);
     }
   };
 
-  const handleDeleteArticle = async (articleId: string) => {
-    const confirmed = await confirm(
-      'Are you sure you want to delete this article?',
-      { title: 'Delete Article' }
-    );
-    
+  const handleDeleteArticle = async (id: string) => {
+    const confirmed = await confirm("Are you sure you want to delete this article?", {
+      title: "Delete Article",
+    });
+
     if (!confirmed) return;
 
     try {
       const { error } = await supabase
         .from('articles')
         .delete()
-        .eq('id', articleId);
-        
+        .eq('id', id);
+
       if (error) throw error;
-      
-      toast.success("Article deleted successfully");
+
       fetchArticles();
-    } catch (error) {
-      console.error('Error deleting article:', error);
-      toast.error('Failed to delete article');
+      toast.success("Article deleted successfully");
+    } catch (error: any) {
+      console.error("Error deleting article:", error);
+      toast.error(error.message || "Failed to delete article");
     }
   };
 
@@ -771,9 +765,9 @@ const AdminDashboard = () => {
         </Card>
 
         <Card className="p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-6">Recently Published</h2>
+          <h2 className="text-xl font-semibold mb-6">Published Content</h2>
           <Tabs defaultValue="reviews" className="w-full">
-            <TabsList className="mb-4">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="articles">Articles</TabsTrigger>
             </TabsList>
@@ -791,7 +785,7 @@ const AdminDashboard = () => {
                         <th className="py-3 px-4 text-left">Title</th>
                         <th className="py-3 px-4 text-left">Genre</th>
                         <th className="py-3 px-4 text-center">Rating</th>
-                        <th className="py-3 px-4 text-left">Created</th>
+                        <th className="py-3 px-4 text-left">Published</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -831,7 +825,7 @@ const AdminDashboard = () => {
             </TabsContent>
             
             <TabsContent value="articles">
-              {isLoading ? (
+              {loadingArticles ? (
                 <p className="text-muted-foreground">Loading articles...</p>
               ) : articles.length === 0 ? (
                 <p className="text-muted-foreground">No articles yet. Create your first article!</p>
@@ -841,7 +835,8 @@ const AdminDashboard = () => {
                     <thead>
                       <tr className="border-b">
                         <th className="py-3 px-4 text-left">Title</th>
-                        <th className="py-3 px-4 text-left">Created</th>
+                        <th className="py-3 px-4 text-left">Summary</th>
+                        <th className="py-3 px-4 text-left">Published</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -850,7 +845,14 @@ const AdminDashboard = () => {
                         <tr key={article.id} className="border-b">
                           <td className="py-3 px-4 text-left">{article.title}</td>
                           <td className="py-3 px-4 text-left">
-                            {format(new Date(article.created_at), 'MMM d, yyyy')}
+                            {article.summary.length > 100 
+                              ? `${article.summary.substring(0, 100)}...` 
+                              : article.summary}
+                          </td>
+                          <td className="py-3 px-4 text-left">
+                            {article.published_date 
+                              ? format(new Date(article.published_date), 'MMM d, yyyy')
+                              : 'Draft'}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -881,9 +883,9 @@ const AdminDashboard = () => {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-6">Recently Scheduled</h2>
+          <h2 className="text-xl font-semibold mb-6">Scheduled Content</h2>
           <Tabs defaultValue="reviews" className="w-full">
-            <TabsList className="mb-4">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="articles">Articles</TabsTrigger>
             </TabsList>
@@ -941,7 +943,7 @@ const AdminDashboard = () => {
             </TabsContent>
             
             <TabsContent value="articles">
-              {isLoading ? (
+              {loadingArticles ? (
                 <p className="text-muted-foreground">Loading articles...</p>
               ) : scheduledArticles.length === 0 ? (
                 <p className="text-muted-foreground">No scheduled articles.</p>
@@ -951,6 +953,7 @@ const AdminDashboard = () => {
                     <thead>
                       <tr className="border-b">
                         <th className="py-3 px-4 text-left">Title</th>
+                        <th className="py-3 px-4 text-left">Summary</th>
                         <th className="py-3 px-4 text-left">Scheduled For</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
@@ -959,6 +962,11 @@ const AdminDashboard = () => {
                       {scheduledArticles.map((article) => (
                         <tr key={article.id} className="border-b">
                           <td className="py-3 px-4 text-left">{article.title}</td>
+                          <td className="py-3 px-4 text-left">
+                            {article.summary.length > 100 
+                              ? `${article.summary.substring(0, 100)}...` 
+                              : article.summary}
+                          </td>
                           <td className="py-3 px-4 text-left">
                             {format(new Date(article.scheduled_for!), 'MMM d, yyyy HH:mm')}
                           </td>

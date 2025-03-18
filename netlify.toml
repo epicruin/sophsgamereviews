@@ -16,8 +16,6 @@
     timeout = 120
   [functions.predict-genre]
     timeout = 120
-  [functions.article-info]
-    timeout = 120
   [functions.igdb-search]
     timeout = 60
 
@@ -43,12 +41,6 @@
 [[redirects]]
   from = "/api/predict-genre"
   to = "/.netlify/functions/predict-genre"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/article-info"
-  to = "/.netlify/functions/article-info"
   status = 200
   force = true
 
@@ -80,12 +72,6 @@
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/predict-genre"
   to = "/.netlify/functions/predict-genre"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "https://sophsgamereviews.netlify.app/api/article-info"
-  to = "/.netlify/functions/article-info"
   status = 200
   force = true
 

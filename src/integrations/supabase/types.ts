@@ -27,56 +27,6 @@ export type Database = {
         }
         Relationships: []
       }
-      articles: {
-        Row: {
-          id: string
-          title: string
-          summary: string
-          content: string
-          tldr: string | null
-          image: string
-          author_id: string
-          created_at: string
-          updated_at: string
-          published_date: string | null
-          scheduled_for: string | null
-        }
-        Insert: {
-          id?: string
-          title: string
-          summary: string
-          content: string
-          tldr?: string | null
-          image: string
-          author_id: string
-          created_at?: string
-          updated_at?: string
-          published_date?: string | null
-          scheduled_for?: string | null
-        }
-        Update: {
-          id?: string
-          title?: string
-          summary?: string
-          content?: string
-          tldr?: string | null
-          image?: string
-          author_id?: string
-          created_at?: string
-          updated_at?: string
-          published_date?: string | null
-          scheduled_for?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "articles_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       homepage_section_order: {
         Row: {
           id: string
@@ -416,6 +366,56 @@ export type Database = {
           }
         ];
       };
+      articles: {
+        Row: {
+          id: string
+          title: string
+          summary: string
+          content: string
+          tldr: string
+          image: string
+          author_id: string
+          created_at: string
+          updated_at: string
+          published_date: string | null
+          scheduled_for: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          summary: string
+          content: string
+          tldr: string
+          image: string
+          author_id: string
+          created_at?: string
+          updated_at?: string
+          published_date?: string | null
+          scheduled_for?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          summary?: string
+          content?: string
+          tldr?: string
+          image?: string
+          author_id?: string
+          created_at?: string
+          updated_at?: string
+          published_date?: string | null
+          scheduled_for?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_articles_author"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
