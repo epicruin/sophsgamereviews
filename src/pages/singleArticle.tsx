@@ -11,6 +11,7 @@ import { ShootingStarsBackground } from "@/components/home/ShootingStarsBackgrou
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Badge } from "@/components/ui/badge";
 
 interface ArticleData {
   id: string;
@@ -25,6 +26,7 @@ interface ArticleData {
   author?: {
     username: string;
     avatar_url?: string;
+    bio?: string;
   };
 }
 
@@ -49,7 +51,7 @@ const SingleArticle = () => {
           .from('articles')
           .select(`
             *,
-            author:profiles(username, avatar_url)
+            author:profiles(username, avatar_url, bio)
           `)
           .eq('id', id)
           .single();
@@ -114,7 +116,7 @@ const SingleArticle = () => {
       <AuroraBackground />
       <ShootingStarsBackground />
       
-      {/* Full width hero header with image - similar to ReviewHeader style */}
+      {/* Full width hero header with image */}
       <section className="relative w-[99.2vw] h-[85vh] -mt-20 -ml-[calc((99.2vw-100%)/2)]">
         <div className="absolute inset-0">
           <img
@@ -132,39 +134,16 @@ const SingleArticle = () => {
         {/* Header content - centered over image */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 z-10">
           <div className="container mx-auto max-w-4xl">
-            <Button variant="outline" asChild className="mb-8 rounded-full bg-black/30 border-white/20 hover:bg-black/40 hover:border-white/30">
-              <Link to="/articles" className="flex items-center gap-2 text-white">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Articles
-              </Link>
-            </Button>
-            
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white drop-shadow-lg">{article.title}</h1>
             
-            <div className="flex justify-center items-center gap-6 mb-8 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-10 w-10 ring-2 ring-white/30">
-                  <AvatarImage src={article.author?.avatar_url} alt={article.author?.username} />
-                  <AvatarFallback>{article.author?.username?.substring(0, 2) || "AN"}</AvatarFallback>
-                </Avatar>
-                <Link to={`/author/${article.author?.username}`} className="text-base font-medium text-white hover:text-rose-300 transition-colors">
-                  {article.author?.username || "Anonymous"}
-                </Link>
-              </div>
-              
-              <div className="h-6 border-l border-white/30"></div>
-              
-              <div className="flex items-center gap-2 text-white/90">
-                <Clock className="h-5 w-5" />
-                <span className="text-base">{format(new Date(article.published_date || article.created_at), "MMMM d, yyyy")}</span>
-              </div>
-              
-              <div className="h-6 border-l border-white/30"></div>
-              
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-rose-300" />
-                <span className="text-base font-medium text-rose-300">Article</span>
-              </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+              <Badge variant="secondary" className="bg-black/40 hover:bg-black/50 backdrop-blur-sm text-white border-none flex items-center gap-1.5 md:gap-2 py-1.5 md:py-2 px-3 md:px-4">
+                <Clock className="w-4 md:w-5 h-4 md:h-5" />
+                <span className="text-base md:text-lg">{format(new Date(article.published_date || article.created_at), "MMMM d, yyyy")}</span>
+              </Badge>
+              <Badge className="bg-rose-500 hover:bg-rose-600 text-white border-none py-1.5 md:py-2 px-3 md:px-4 text-base md:text-lg">
+                Article
+              </Badge>
             </div>
           </div>
         </div>
@@ -173,14 +152,41 @@ const SingleArticle = () => {
       {/* Content - positioned to overlap the fading hero image */}
       <div className="relative z-10 container mx-auto px-4 -mt-32">
         <div className="w-full max-w-3xl mx-auto">
+          {/* Author Info Card - added at the top similar to review page */}
+          <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md">
+            <div className="flex items-center">
+              <Link to={`/author/${article.author?.username}`} className="group/author shrink-0">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={article.author?.avatar_url} alt={article.author?.username} />
+                    <AvatarFallback>{article.author?.username?.substring(0, 2) || "AN"}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold group-hover/author:text-rose-500 transition-colors gradient-text">{article.author?.username || "Anonymous"}</h3>
+                    <p className="text-sm text-muted-foreground">Game Writer</p>
+                  </div>
+                </div>
+              </Link>
+              
+              {article.author?.bio && (
+                <>
+                  <div className="mx-6 self-stretch border-l border-rose-200/30 h-16" />
+                  <p className="text-sm text-muted-foreground flex-1 leading-relaxed">
+                    {article.author.bio}
+                  </p>
+                </>
+              )}
+            </div>
+          </Card>
+
           {article.summary && (
-            <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md">
-              <h2 className="text-xl font-semibold mb-4 gradient-text">Summary</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">{article.summary}</p>
+            <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md">
+              <h3 className="font-semibold mb-4 gradient-text">Summary</h3>
+              <p className="text-lg leading-relaxed text-muted-foreground">{article.summary}</p>
             </Card>
           )}
           
-          <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md">
+          <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md">
             <article className="prose prose-lg dark:prose-invert max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {article.content}
@@ -189,29 +195,11 @@ const SingleArticle = () => {
           </Card>
           
           {article.tldr && (
-            <Card className="p-6 md:p-8 mb-12 bg-card/95 backdrop-blur-md border-rose-500/20">
-              <h2 className="text-xl font-semibold mb-4 gradient-text">TL;DR</h2>
+            <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md border-rose-500/20">
+              <h3 className="font-semibold mb-4 gradient-text">TL;DR</h3>
               <p className="text-muted-foreground leading-relaxed">{article.tldr}</p>
             </Card>
           )}
-          
-          <div className="flex justify-between items-center mt-12 mb-24">
-            <Button variant="outline" asChild>
-              <Link to="/articles" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Articles
-              </Link>
-            </Button>
-            
-            <Button variant="default" asChild>
-              <a href="#" className="flex items-center gap-2" onClick={(e) => {
-                e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}>
-                Back to Top
-              </a>
-            </Button>
-          </div>
         </div>
       </div>
     </div>
