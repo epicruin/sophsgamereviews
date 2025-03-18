@@ -65,11 +65,19 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No session found");
 
+      // Format current time as ISO string for timestamptz
       const now = new Date().toISOString();
       
       // Ensure image has a value
       const image = formData.image.trim() || DEFAULT_IMAGE;
       
+      // Format scheduled_for as proper timestamptz if it exists
+      let scheduledFor = null;
+      if (formData.scheduled_for) {
+        scheduledFor = new Date(formData.scheduled_for).toISOString();
+      }
+      
+      // Basic data common to both create and update
       const articleFormData = {
         title: formData.title.trim(),
         summary: formData.summary.trim(),
@@ -77,13 +85,16 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
         tldr: formData.tldr.trim() || null, // Allow null for tldr
         image: image,
         author_id: session.user.id,
-        scheduled_for: formData.scheduled_for,
+        scheduled_for: scheduledFor,
         updated_at: now,
+        // Set published_date to null explicitly (in case DB default is not null)
+        published_date: null
       };
 
       let article;
       if (articleData?.id) {
         // Update existing article
+        console.log("Updating article with data:", articleFormData);
         const { data, error: updateError } = await supabase
           .from("articles")
           .update(articleFormData)
@@ -91,22 +102,28 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
           .select()
           .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Update error details:", updateError);
+          throw updateError;
+        }
         article = data;
         toast.success("Article updated successfully");
       } else {
         // Create new article with created_at timestamp
+        const newArticle = {
+          ...articleFormData,
+          created_at: now
+        };
+        
+        console.log("Creating article with data:", newArticle);
         const { data, error: insertError } = await supabase
           .from("articles")
-          .insert({
-            ...articleFormData,
-            created_at: now
-          })
+          .insert(newArticle)
           .select()
           .single();
 
         if (insertError) {
-          console.error("Insert error:", insertError);
+          console.error("Insert error details:", insertError);
           throw insertError;
         }
         article = data;
