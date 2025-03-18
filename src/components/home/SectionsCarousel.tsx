@@ -153,7 +153,7 @@ export const SectionsCarousel = ({
               }`}
             >
               {section.id === "browse_genres" ? (
-                <div className="container mx-auto px-4 w-full">
+                <div className="container mx-auto px-4 w-full max-w-full 3xl:max-w-[1920px] 4xl:max-w-[2400px]">
                   <SectionContainer
                     id={`section-${section.id}`}
                     title={section.title}
@@ -163,13 +163,13 @@ export const SectionsCarousel = ({
                   />
                 </div>
               ) : section.id === "developer_spotlight" ? (
-                <div className="container mx-auto px-4 w-full">
+                <div className="container mx-auto px-4 w-full max-w-full 3xl:max-w-[1920px] 4xl:max-w-[2400px]">
                   <DeveloperSpotlightSection 
                     dotNavPosition={renderDotNav()}
                   />
                 </div>
               ) : (
-                <div className="container mx-auto px-4 w-full">
+                <div className="container mx-auto px-4 w-full max-w-full 3xl:max-w-[1920px] 4xl:max-w-[2400px]">
                   <SectionContainer
                     id={`section-${section.id}`}
                     title={section.title}

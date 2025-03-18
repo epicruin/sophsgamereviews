@@ -70,7 +70,7 @@ async function searchGame(title, token) {
         search "${title}";
         fields name,cover.*,screenshots.*,screenshots.url;
         where version_parent = null;
-        limit 10;
+        limit 20;
       `
     });
 

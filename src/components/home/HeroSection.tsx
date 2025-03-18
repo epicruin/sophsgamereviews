@@ -62,7 +62,9 @@ export const HeroSection = () => {
     if (windowWidth < 768) return "3rem";        // Large phones/small tablets
     if (windowWidth < 992) return "3.25rem";     // Tablets
     if (windowWidth < 1200) return "3.5rem";     // Small desktops
-    return "3.75rem";                            // Large desktops
+    if (windowWidth < 1920) return "3.75rem";    // Large desktops
+    if (windowWidth < 2560) return "4.25rem";    // Full HD+ displays (3xl)
+    return "5rem";                               // 2K and 4K displays (4xl)
   }
 
   // Tiny screens (<360px)
@@ -240,7 +242,7 @@ export const HeroSection = () => {
   );
 
   return (
-    <section className={`container mx-auto ${windowWidth < 480 ? 'px-2' : 'px-4'} flex flex-col justify-center relative`}>
+    <section className={`container mx-auto ${windowWidth < 480 ? 'px-2' : 'px-4'} flex flex-col justify-center relative max-w-full 3xl:max-w-[1920px] 4xl:max-w-[2400px]`}>
       <motion.div
         initial={{
           opacity: 0,

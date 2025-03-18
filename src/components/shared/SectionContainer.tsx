@@ -48,7 +48,7 @@ export const SectionContainer = ({
   // Handle loading state
   if (isLoading) {
     return (
-      <section className={`container mx-auto px-4 py-16 ${className}`}>
+      <section className={`container mx-auto px-4 py-16 max-w-full 3xl:max-w-[1920px] 4xl:max-w-[2400px] ${className}`}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-pulse text-center">
             <div className="h-8 w-64 bg-gray-200 rounded-md mx-auto mb-4"></div>
@@ -67,7 +67,7 @@ export const SectionContainer = ({
   // Handle error state
   if (error) {
     return (
-      <section className={`container mx-auto px-4 py-16 ${className}`}>
+      <section className={`container mx-auto px-4 py-16 max-w-full 3xl:max-w-[1920px] 4xl:max-w-[2400px] ${className}`}>
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Error Loading Content</h2>
           <p className="text-muted-foreground">{error.toString()}</p>
