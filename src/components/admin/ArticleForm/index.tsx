@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleFormProps, ArticleFormData, initialFormData } from "./types";
+import { ArticleAIGenerateButton } from "@/components/ui/article-ai-generate-button";
+import { ImageSearchButton } from "@/components/ui/image-search-button";
 
 export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   // Format datetime for input element (needs YYYY-MM-DDThh:mm format)
@@ -109,12 +111,36 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFormUpdate = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Basic Information */}
       <Card className="p-6">
         <div className="relative flex justify-end items-center mb-4">
           <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Basic Information</h3>
+          <div className="z-10">
+            <ArticleAIGenerateButton
+              articleTitle={formData.title || "New Article"}
+              section="titleAndSummary"
+              onGenerated={(content) => {
+                if (content && content.title && content.summary) {
+                  // If we get structured data with title and summary
+                  handleFormUpdate("title", content.title);
+                  handleFormUpdate("summary", content.summary);
+                } else if (typeof content === 'string') {
+                  // Fallback to old behavior if we get a string
+                  if (!formData.title) {
+                    const title = content.split('.')[0].trim();
+                    handleFormUpdate("title", title);
+                  }
+                  handleFormUpdate("summary", content);
+                }
+              }}
+            />
+          </div>
         </div>
         <div className="space-y-4">
           <div>
@@ -128,7 +154,7 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
             />
           </div>
           
-          <div>
+          <div className="relative">
             <Textarea
               id="summary"
               name="summary"
@@ -146,6 +172,14 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
       <Card className="p-6">
         <div className="relative flex justify-end items-center mb-4">
           <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Featured Image</h3>
+          <div className="z-10">
+            <ImageSearchButton
+              articleTitle={formData.title}
+              onImageSelected={(imageUrl) => {
+                handleFormUpdate("image", imageUrl);
+              }}
+            />
+          </div>
         </div>
         <div className="space-y-4">
           <div>
@@ -174,6 +208,15 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
       <Card className="p-6">
         <div className="relative flex justify-end items-center mb-4">
           <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Article Content</h3>
+          <div className="z-10">
+            <ArticleAIGenerateButton
+              articleTitle={formData.title}
+              section="content"
+              onGenerated={(content) => {
+                handleFormUpdate("content", content);
+              }}
+            />
+          </div>
         </div>
         <div className="space-y-4">
           <div>
@@ -194,6 +237,15 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
       <Card className="p-6">
         <div className="relative flex justify-end items-center mb-4">
           <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">TL;DR</h3>
+          <div className="z-10">
+            <ArticleAIGenerateButton
+              articleTitle={formData.title}
+              section="tldr"
+              onGenerated={(content) => {
+                handleFormUpdate("tldr", content);
+              }}
+            />
+          </div>
         </div>
         <div className="space-y-4">
           <div>
