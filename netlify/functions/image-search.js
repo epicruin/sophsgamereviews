@@ -68,18 +68,14 @@ exports.handler = async function(event, context) {
       // Use Perplexity for image search
       console.log(`Searching for images with query: "${query}"`);
       
-      const systemPrompt = `You are a professional image search specialist. Your task is to search for high-quality, free-to-use images that match the user's query.
+      const systemPrompt = `Return up to 3 high-quality, free stock image URLs (Unsplash, Pexels, Pixabay) in this format:
+      ["url1.jpg", "url2.jpg"]
       
-      IMPORTANT INSTRUCTIONS:
-      1. Return exactly 6 image URLs that are relevant to the query
-      2. ONLY include images that are likely freely usable (from sources like Unsplash, Pexels, Pixabay)
-      3. Focus on high-quality, eye-catching images suitable for article headers
-      4. Return ONLY the image URLs in a JSON array format like this:
-         ["https://example.com/image1.jpg", "https://example.com/image2.jpg", ...]
-      5. DO NOT include any explanation or additional text
-      6. Only include valid, direct image URLs that end with image extensions (.jpg, .jpeg, .png, .webp)
-      7. Do not include any placeholder or example URLs
-      8. Ensure all URLs are valid and accessible`;
+      Rules:
+      - Only direct image URLs (.jpg, .png, .webp)
+      - Return fewer if can't find 3 good ones
+      - No explanations
+      - Must be accessible URLs`;
       
       const completion = await perplexity.chat.completions.create({
         messages: [
@@ -89,7 +85,7 @@ exports.handler = async function(event, context) {
           },
           {
             role: "user",
-            content: `Search for images related to: ${query}`
+            content: `${query} gaming article header image`
           }
         ],
         model: "sonar-pro",
