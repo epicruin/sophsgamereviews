@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { motion } from "framer-motion";
+import { MediumCard } from "@/components/cards/MediumCard";
 
 interface ArticleData {
   id: string;
@@ -47,12 +48,29 @@ interface LatestArticle {
   likes: number;
 }
 
+// Interface for latest reviews carousel
+interface LatestReview {
+  id: string;
+  title: string;
+  image: string;
+  imagePosition: number;
+  rating: number;
+  excerpt: string;
+  author: {
+    name: string;
+    avatar: string;
+  };
+  likes: number;
+  genre: string;
+}
+
 const SingleArticle = () => {
   const { id } = useParams<{ id: string }>();
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
+  const [latestReviews, setLatestReviews] = useState<LatestReview[]>([]);
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = '';
@@ -85,8 +103,9 @@ const SingleArticle = () => {
         
         setArticle(data);
         
-        // After getting the article, fetch latest articles
+        // After getting the article, fetch latest articles and reviews
         fetchLatestArticles(data.id);
+        fetchLatestReviews();
       } catch (error: any) {
         console.error("Error fetching article:", error);
         setError(error.message || "Failed to load article");
@@ -121,7 +140,7 @@ const SingleArticle = () => {
         .neq('id', currentArticleId) // Exclude current article
         .or(`scheduled_for.is.null,scheduled_for.lt.${now}`) // Only published articles
         .order('created_at', { ascending: false })
-        .limit(6);
+        .limit(18);
 
       if (articlesError) throw articlesError;
 
@@ -143,6 +162,58 @@ const SingleArticle = () => {
       }
     } catch (error) {
       console.error('Error fetching latest articles:', error);
+    }
+  };
+  
+  const fetchLatestReviews = async () => {
+    try {
+      const now = new Date().toISOString();
+      
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('reviews')
+        .select(`
+          id,
+          title,
+          image,
+          excerpt,
+          rating,
+          likes,
+          image_position,
+          scheduled_for,
+          author:profiles!inner(
+            username,
+            avatar_url
+          ),
+          genre:genres!inner(
+            name
+          )
+        `)
+        .or(`scheduled_for.is.null,scheduled_for.lt.${now}`) // Only published reviews
+        .order('created_at', { ascending: false })
+        .limit(24);
+
+      if (reviewsError) throw reviewsError;
+
+      if (reviewsData) {
+        const formattedReviews: LatestReview[] = reviewsData.map(review => ({
+          id: review.id,
+          title: review.title,
+          image: review.image,
+          imagePosition: review.image_position || 50,
+          excerpt: review.excerpt,
+          rating: review.rating,
+          author: {
+            name: review.author?.username || 'Anonymous',
+            avatar: review.author?.avatar_url || 'https://i.pravatar.cc/150',
+          },
+          likes: review.likes || 0,
+          genre: review.genre?.name || 'Uncategorized'
+        }));
+
+        setLatestReviews(formattedReviews);
+      }
+    } catch (error) {
+      console.error('Error fetching latest reviews:', error);
     }
   };
 
@@ -270,7 +341,7 @@ const SingleArticle = () => {
           
           {/* Latest Articles Carousel */}
           {latestArticles.length > 0 && (
-            <Card className="p-8 mt-12 mb-12 bg-card/95 backdrop-blur-md">
+            <Card className="p-8 mt-12 mb-8 bg-card/95 backdrop-blur-md">
               <h3 className="text-2xl font-semibold mb-6 flex items-center justify-center gap-2 gradient-text">
                 Latest Articles
               </h3>
@@ -300,6 +371,42 @@ const SingleArticle = () => {
                           author={article.author}
                           likes={article.likes}
                         />
+                      </motion.div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="flex items-center justify-end space-x-2 mt-4">
+                  <CarouselPrevious className="border-rose-400 text-rose-400 hover:bg-rose-50 hover:text-rose-500" />
+                  <CarouselNext className="border-rose-400 text-rose-400 hover:bg-rose-50 hover:text-rose-500" />
+                </div>
+              </Carousel>
+            </Card>
+          )}
+          
+          {/* Latest Reviews Carousel */}
+          {latestReviews.length > 0 && (
+            <Card className="p-8 bg-card/95 backdrop-blur-md mb-12">
+              <h3 className="text-2xl font-semibold mb-6 flex items-center justify-center gap-2 gradient-text">
+                Latest Reviews
+              </h3>
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                  skipSnaps: false,
+                  dragFree: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-4">
+                  {latestReviews.map((review, index) => (
+                    <CarouselItem key={review.id} className="pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, delay: index * 0.1 }}
+                      >
+                        <MediumCard {...review} />
                       </motion.div>
                     </CarouselItem>
                   ))}
