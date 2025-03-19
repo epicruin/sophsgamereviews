@@ -98,6 +98,25 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
     });
   };
 
+  const generateSummaryForTitle = async (articleTitle: string): Promise<string> => {
+    try {
+      const result = await generateArticleContent(articleTitle, 'titleAndSummary');
+      
+      // Extract the summary from the result
+      if (result.titleAndSummary) {
+        if (typeof result.titleAndSummary === 'object' && result.titleAndSummary.summary) {
+          return result.titleAndSummary.summary;
+        } else if (typeof result.titleAndSummary === 'string') {
+          return result.titleAndSummary;
+        }
+      }
+      return ""; // Default empty summary if extraction fails
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      return ""; // Return empty string on error
+    }
+  };
+
   const generateArticles = async () => {
     // Validate titles
     const validTitles = articleTitles.filter(g => g.title.trim() !== "");
@@ -141,30 +160,34 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
       // Process each article title sequentially
       for (const [index, article] of validTitles.entries()) {
         try {
+          // Create a working copy of the article that we can modify
+          const workingArticle = { ...article };
+          
           // Initialize progress for this article
           setProgress(prev => [...prev, {
-            title: article.title,
+            title: workingArticle.title,
             steps: Object.fromEntries(
               GENERATION_STEPS.map(s => [s.key, { status: 'pending' }])
             ) as Record<GenerationStep, { status: GenerationStatus; error?: string }>
           }]);
 
-          // If we already have the summary from the title generator, we can skip that step
-          if (article.summary) {
-            updateArticleProgress(index, 'titleAndSummary', 'completed');
-          } else {
-            // Generate title & summary
+          // Generate summary if it's not already provided
+          if (!workingArticle.summary || workingArticle.summary.trim() === "") {
             updateArticleProgress(index, 'titleAndSummary', 'inProgress');
+            
             try {
-              const result = await generateArticleContent(article.title, 'titleAndSummary');
-              if (result.titleAndSummary) {
-                updateArticleSummary(index, result.titleAndSummary.summary || "");
-              }
+              const summary = await generateSummaryForTitle(workingArticle.title);
+              workingArticle.summary = summary;
+              updateArticleSummary(index, summary); // Update UI state
               updateArticleProgress(index, 'titleAndSummary', 'completed');
             } catch (error: any) {
-              console.error('Error generating title & summary:', error);
+              console.error('Error generating summary:', error);
               updateArticleProgress(index, 'titleAndSummary', 'error', error.message);
+              // Continue with empty summary if generation fails
+              workingArticle.summary = "No summary available.";
             }
+          } else {
+            updateArticleProgress(index, 'titleAndSummary', 'completed');
           }
 
           // Generate all required content
@@ -178,7 +201,7 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           for (const step of generationSteps) {
             updateArticleProgress(index, step as GenerationStep, 'inProgress');
             try {
-              const result = await generateArticleContent(article.title, step);
+              const result = await generateArticleContent(workingArticle.title, step);
               results.push(result);
               updateArticleProgress(index, step as GenerationStep, 'completed');
             } catch (error: any) {
@@ -198,7 +221,7 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           updateArticleProgress(index, 'image', 'inProgress');
           try {
             // Default to article title if no image query was generated
-            const imageQuery = imageQueryData.imageQuery || article.title;
+            const imageQuery = imageQueryData.imageQuery || workingArticle.title;
             
             // This would normally call an image search API
             // For now, we'll use a placeholder
@@ -216,8 +239,8 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           updateArticleProgress(index, 'database', 'inProgress');
 
           // Calculate scheduled date (use provided date or default to 7 days after the last scheduled article)
-          const scheduledDate = article.scheduledFor 
-            ? new Date(article.scheduledFor)
+          const scheduledDate = workingArticle.scheduledFor 
+            ? new Date(workingArticle.scheduledFor)
             : (() => {
                 if (index === 0) {
                   // First article: schedule 7 days from base date
@@ -236,8 +259,8 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
 
           // Prepare article data
           const articleData = {
-            title: article.title,
-            summary: article.summary,
+            title: workingArticle.title,
+            summary: workingArticle.summary,
             content: contentData.content || "Content generation failed. Please try again.",
             tldr: tldrData.tldr || "TL;DR generation failed. Please try again.",
             image: imageUrl,
