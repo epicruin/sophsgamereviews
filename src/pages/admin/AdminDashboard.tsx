@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette, ChevronRight, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIReviewSpinner } from "@/components/admin/AIReviewSpinner";
@@ -59,6 +59,8 @@ interface Article {
   published_date: string | null;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const AdminDashboard = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [scheduledReviews, setScheduledReviews] = useState<Review[]>([]);
@@ -78,6 +80,16 @@ const AdminDashboard = () => {
   const [loadingArticles, setLoadingArticles] = useState(true);
   const navigate = useNavigate();
   const { confirm, ConfirmationDialog } = useConfirm();
+  
+  // Pagination states
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewTotalCount, setReviewTotalCount] = useState(0);
+  const [scheduledReviewPage, setScheduledReviewPage] = useState(1);
+  const [scheduledReviewTotalCount, setScheduledReviewTotalCount] = useState(0);
+  const [articlePage, setArticlePage] = useState(1);
+  const [articleTotalCount, setArticleTotalCount] = useState(0);
+  const [scheduledArticlePage, setScheduledArticlePage] = useState(1);
+  const [scheduledArticleTotalCount, setScheduledArticleTotalCount] = useState(0);
 
   useEffect(() => {
     checkAdmin();
@@ -231,7 +243,17 @@ const AdminDashboard = () => {
     if (!session) return;
 
     try {
-      // Fetch regular reviews (not scheduled or past scheduled date)
+      // Get total count of regular reviews
+      const { count: regularCount, error: countError } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', session.user.id)
+        .or('scheduled_for.is.null,scheduled_for.lte.now()');
+
+      if (countError) throw countError;
+      setReviewTotalCount(regularCount || 0);
+
+      // Fetch regular reviews (not scheduled or past scheduled date) with pagination
       const { data: regularData, error: regularError } = await supabase
         .from('reviews')
         .select(`
@@ -247,12 +269,24 @@ const AdminDashboard = () => {
         `)
         .eq('author_id', session.user.id)
         .or('scheduled_for.is.null,scheduled_for.lte.now()')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range((reviewPage - 1) * ITEMS_PER_PAGE, reviewPage * ITEMS_PER_PAGE - 1);
 
       if (regularError) throw regularError;
       setReviews((regularData || []) as unknown as Review[]);
 
-      // Fetch scheduled reviews (future scheduled date)
+      // Get total count of scheduled reviews
+      const { count: scheduledCount, error: scheduledCountError } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', session.user.id)
+        .not('scheduled_for', 'is', null)
+        .gt('scheduled_for', new Date().toISOString());
+
+      if (scheduledCountError) throw scheduledCountError;
+      setScheduledReviewTotalCount(scheduledCount || 0);
+
+      // Fetch scheduled reviews (future scheduled date) with pagination
       const { data: scheduledData, error: scheduledError } = await supabase
         .from('reviews')
         .select(`
@@ -269,7 +303,8 @@ const AdminDashboard = () => {
         .eq('author_id', session.user.id)
         .not('scheduled_for', 'is', null)
         .gt('scheduled_for', new Date().toISOString())
-        .order('scheduled_for', { ascending: true });
+        .order('scheduled_for', { ascending: true })
+        .range((scheduledReviewPage - 1) * ITEMS_PER_PAGE, scheduledReviewPage * ITEMS_PER_PAGE - 1);
 
       if (scheduledError) throw scheduledError;
       setScheduledReviews((scheduledData || []) as unknown as Review[]);
@@ -280,6 +315,13 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   };
+
+  // Update fetchReviews when pagination changes
+  useEffect(() => {
+    if (!isLoading) {
+      fetchReviews();
+    }
+  }, [reviewPage, scheduledReviewPage]);
 
   const handleDelete = async (reviewId: string) => {
     const confirmed = await confirm(
@@ -530,24 +572,47 @@ const AdminDashboard = () => {
       
       const now = new Date().toISOString();
       
-      // Fetch published articles
+      // Get total count of published articles
+      const { count: publishedCount, error: publishedCountError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', session.user.id)
+        .not('published_date', 'is', null)
+        .is('scheduled_for', null);
+        
+      if (publishedCountError) throw publishedCountError;
+      setArticleTotalCount(publishedCount || 0);
+      
+      // Fetch published articles with pagination
       const { data: publishedData, error: publishedError } = await supabase
         .from('articles')
         .select('*')
         .eq('author_id', session.user.id)
         .not('published_date', 'is', null)
         .is('scheduled_for', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range((articlePage - 1) * ITEMS_PER_PAGE, articlePage * ITEMS_PER_PAGE - 1);
       
       if (publishedError) throw publishedError;
       
-      // Fetch scheduled articles
+      // Get total count of scheduled articles
+      const { count: scheduledCount, error: scheduledCountError } = await supabase
+        .from('articles')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', session.user.id)
+        .not('scheduled_for', 'is', null);
+        
+      if (scheduledCountError) throw scheduledCountError;
+      setScheduledArticleTotalCount(scheduledCount || 0);
+      
+      // Fetch scheduled articles with pagination
       const { data: scheduledData, error: scheduledError } = await supabase
         .from('articles')
         .select('*')
         .eq('author_id', session.user.id)
         .not('scheduled_for', 'is', null)
-        .order('scheduled_for', { ascending: true });
+        .order('scheduled_for', { ascending: true })
+        .range((scheduledArticlePage - 1) * ITEMS_PER_PAGE, scheduledArticlePage * ITEMS_PER_PAGE - 1);
       
       if (scheduledError) throw scheduledError;
       
@@ -560,6 +625,13 @@ const AdminDashboard = () => {
       setLoadingArticles(false);
     }
   };
+
+  // Update fetchArticles when pagination changes
+  useEffect(() => {
+    if (!loadingArticles) {
+      fetchArticles();
+    }
+  }, [articlePage, scheduledArticlePage]);
 
   const handleDeleteArticle = async (id: string) => {
     const confirmed = await confirm("Are you sure you want to delete this article?", {
@@ -582,6 +654,45 @@ const AdminDashboard = () => {
       console.error("Error deleting article:", error);
       toast.error(error.message || "Failed to delete article");
     }
+  };
+
+  // Pagination component
+  const Pagination = ({ 
+    currentPage, 
+    totalItems, 
+    onPageChange 
+  }: { 
+    currentPage: number, 
+    totalItems: number, 
+    onPageChange: (page: number) => void 
+  }) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-center mt-4 gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm">
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -780,49 +891,56 @@ const AdminDashboard = () => {
               ) : reviews.length === 0 ? (
                 <p className="text-muted-foreground">No reviews yet. Create your first review!</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-3 px-4 text-left">Title</th>
-                        <th className="py-3 px-4 text-left">Genre</th>
-                        <th className="py-3 px-4 text-center">Rating</th>
-                        <th className="py-3 px-4 text-left">Published</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reviews.map((review) => (
-                        <tr key={review.id} className="border-b">
-                          <td className="py-3 px-4 text-left">{review.title}</td>
-                          <td className="py-3 px-4 text-left">{review.genre?.name || 'Uncategorized'}</td>
-                          <td className="py-3 px-4 text-center">{review.rating}/10</td>
-                          <td className="py-3 px-4 text-left">
-                            {format(new Date(review.created_at), 'MMM d, yyyy')}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/admin/reviews/${review.id}/edit`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(review.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-3 px-4 text-left">Title</th>
+                          <th className="py-3 px-4 text-left">Genre</th>
+                          <th className="py-3 px-4 text-center">Rating</th>
+                          <th className="py-3 px-4 text-left">Published</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {reviews.map((review) => (
+                          <tr key={review.id} className="border-b">
+                            <td className="py-3 px-4 text-left">{review.title}</td>
+                            <td className="py-3 px-4 text-left">{review.genre?.name || 'Uncategorized'}</td>
+                            <td className="py-3 px-4 text-center">{review.rating}/10</td>
+                            <td className="py-3 px-4 text-left">
+                              {format(new Date(review.created_at), 'MMM d, yyyy')}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/admin/reviews/${review.id}/edit`)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(review.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination 
+                    currentPage={reviewPage} 
+                    totalItems={reviewTotalCount} 
+                    onPageChange={setReviewPage} 
+                  />
+                </>
               )}
             </TabsContent>
             
@@ -832,53 +950,60 @@ const AdminDashboard = () => {
               ) : articles.length === 0 ? (
                 <p className="text-muted-foreground">No articles yet. Create your first article!</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-3 px-4 text-left">Title</th>
-                        <th className="py-3 px-4 text-left">Summary</th>
-                        <th className="py-3 px-4 text-left">Published</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {articles.map((article) => (
-                        <tr key={article.id} className="border-b">
-                          <td className="py-3 px-4 text-left">{article.title}</td>
-                          <td className="py-3 px-4 text-left">
-                            {article.summary.length > 100 
-                              ? `${article.summary.substring(0, 100)}...` 
-                              : article.summary}
-                          </td>
-                          <td className="py-3 px-4 text-left">
-                            {article.published_date 
-                              ? format(new Date(article.published_date), 'MMM d, yyyy')
-                              : 'Draft'}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteArticle(article.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-3 px-4 text-left">Title</th>
+                          <th className="py-3 px-4 text-left">Summary</th>
+                          <th className="py-3 px-4 text-left">Published</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {articles.map((article) => (
+                          <tr key={article.id} className="border-b">
+                            <td className="py-3 px-4 text-left">{article.title}</td>
+                            <td className="py-3 px-4 text-left">
+                              {article.summary.length > 100 
+                                ? `${article.summary.substring(0, 100)}...` 
+                                : article.summary}
+                            </td>
+                            <td className="py-3 px-4 text-left">
+                              {article.published_date 
+                                ? format(new Date(article.published_date), 'MMM d, yyyy')
+                                : 'Draft'}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteArticle(article.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination 
+                    currentPage={articlePage} 
+                    totalItems={articleTotalCount} 
+                    onPageChange={setArticlePage} 
+                  />
+                </>
               )}
             </TabsContent>
           </Tabs>
@@ -898,49 +1023,56 @@ const AdminDashboard = () => {
               ) : scheduledReviews.length === 0 ? (
                 <p className="text-muted-foreground">No scheduled reviews.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-3 px-4 text-left">Title</th>
-                        <th className="py-3 px-4 text-left">Genre</th>
-                        <th className="py-3 px-4 text-center">Rating</th>
-                        <th className="py-3 px-4 text-left">Scheduled For</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scheduledReviews.map((review) => (
-                        <tr key={review.id} className="border-b">
-                          <td className="py-3 px-4 text-left">{review.title}</td>
-                          <td className="py-3 px-4 text-left">{review.genre?.name || 'Uncategorized'}</td>
-                          <td className="py-3 px-4 text-center">{review.rating}/10</td>
-                          <td className="py-3 px-4 text-left">
-                            {format(new Date(review.scheduled_for!), 'MMM d, yyyy HH:mm')}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/admin/reviews/${review.id}/edit`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(review.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-3 px-4 text-left">Title</th>
+                          <th className="py-3 px-4 text-left">Genre</th>
+                          <th className="py-3 px-4 text-center">Rating</th>
+                          <th className="py-3 px-4 text-left">Scheduled For</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {scheduledReviews.map((review) => (
+                          <tr key={review.id} className="border-b">
+                            <td className="py-3 px-4 text-left">{review.title}</td>
+                            <td className="py-3 px-4 text-left">{review.genre?.name || 'Uncategorized'}</td>
+                            <td className="py-3 px-4 text-center">{review.rating}/10</td>
+                            <td className="py-3 px-4 text-left">
+                              {format(new Date(review.scheduled_for!), 'MMM d, yyyy HH:mm')}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/admin/reviews/${review.id}/edit`)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(review.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination 
+                    currentPage={scheduledReviewPage} 
+                    totalItems={scheduledReviewTotalCount} 
+                    onPageChange={setScheduledReviewPage} 
+                  />
+                </>
               )}
             </TabsContent>
             
@@ -950,51 +1082,58 @@ const AdminDashboard = () => {
               ) : scheduledArticles.length === 0 ? (
                 <p className="text-muted-foreground">No scheduled articles.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-3 px-4 text-left">Title</th>
-                        <th className="py-3 px-4 text-left">Summary</th>
-                        <th className="py-3 px-4 text-left">Scheduled For</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scheduledArticles.map((article) => (
-                        <tr key={article.id} className="border-b">
-                          <td className="py-3 px-4 text-left">{article.title}</td>
-                          <td className="py-3 px-4 text-left">
-                            {article.summary.length > 100 
-                              ? `${article.summary.substring(0, 100)}...` 
-                              : article.summary}
-                          </td>
-                          <td className="py-3 px-4 text-left">
-                            {format(new Date(article.scheduled_for!), 'MMM d, yyyy HH:mm')}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteArticle(article.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-3 px-4 text-left">Title</th>
+                          <th className="py-3 px-4 text-left">Summary</th>
+                          <th className="py-3 px-4 text-left">Scheduled For</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {scheduledArticles.map((article) => (
+                          <tr key={article.id} className="border-b">
+                            <td className="py-3 px-4 text-left">{article.title}</td>
+                            <td className="py-3 px-4 text-left">
+                              {article.summary.length > 100 
+                                ? `${article.summary.substring(0, 100)}...` 
+                                : article.summary}
+                            </td>
+                            <td className="py-3 px-4 text-left">
+                              {format(new Date(article.scheduled_for!), 'MMM d, yyyy HH:mm')}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/admin/articles/${article.id}/edit`)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteArticle(article.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination 
+                    currentPage={scheduledArticlePage} 
+                    totalItems={scheduledArticleTotalCount} 
+                    onPageChange={setScheduledArticlePage} 
+                  />
+                </>
               )}
             </TabsContent>
           </Tabs>
