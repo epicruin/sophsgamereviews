@@ -524,7 +524,11 @@ const SingleArticle = () => {
                   skipSnaps: false,
                   dragFree: false,
                   containScroll: "trimSnaps",
-                  slidesToScroll: 3
+                  breakpoints: {
+                    '(min-width: 1024px)': { slidesToScroll: 3 },
+                    '(min-width: 768px) and (max-width: 1023px)': { slidesToScroll: 2 },
+                    '(max-width: 767px)': { slidesToScroll: 1 }
+                  }
                 }}
                 className="w-full"
               >
@@ -570,7 +574,12 @@ const SingleArticle = () => {
                   skipSnaps: false,
                   dragFree: false,
                   containScroll: "trimSnaps",
-                  slidesToScroll: 4
+                  breakpoints: {
+                    '(min-width: 1024px)': { slidesToScroll: 4 },
+                    '(min-width: 768px) and (max-width: 1023px)': { slidesToScroll: 3 },
+                    '(min-width: 640px) and (max-width: 767px)': { slidesToScroll: 2 },
+                    '(max-width: 639px)': { slidesToScroll: 1 }
+                  }
                 }}
                 className="w-full"
               >
