@@ -16,6 +16,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselPrevious, 
+  CarouselNext 
+} from "@/components/ui/carousel";
+import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
+import { cn } from "@/lib/utils";
 
 interface AuthorProfile {
   id: string;
@@ -25,11 +34,27 @@ interface AuthorProfile {
   title: string;
 }
 
+interface Article {
+  id: string;
+  title: string;
+  image: string;
+  summary: string;
+  author: {
+    name: string;
+    avatar: string;
+  };
+  likes: number;
+  imagePosition?: number;
+}
+
 const Author = () => {
   const { username } = useParams();
   const [author, setAuthor] = useState<AuthorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [bioDialogOpen, setBioDialogOpen] = useState(false);
+  const [authorArticles, setAuthorArticles] = useState<Article[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(true);
+  const [activeSection, setActiveSection] = useState<'reviews' | 'articles'>('reviews');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -59,11 +84,62 @@ const Author = () => {
         bio: authorData.bio,
         title: 'Game Reviewer'
       });
+      
+      // Fetch author's articles
+      fetchAuthorArticles(authorData.id);
     } catch (error) {
       console.error('Error fetching author:', error);
       toast.error('Failed to load author profile');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAuthorArticles = async (authorId: string) => {
+    try {
+      setIsLoadingArticles(true);
+      const now = new Date().toISOString();
+      
+      const { data, error } = await supabase
+        .from('articles')
+        .select(`
+          id,
+          title,
+          image,
+          summary,
+          published_date,
+          author:profiles!inner(
+            username,
+            avatar_url
+          )
+        `)
+        .eq('author_id', authorId)
+        .or(`scheduled_for.is.null,scheduled_for.lt.${now}`) // Only published articles
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedArticles: Article[] = data.map(article => ({
+          id: article.id,
+          title: article.title,
+          image: article.image,
+          imagePosition: 50, // Default position
+          summary: article.summary,
+          author: {
+            name: article.author?.username || 'Anonymous',
+            avatar: article.author?.avatar_url || 'https://i.pravatar.cc/150',
+          },
+          likes: 0 // Default value
+        }));
+
+        setAuthorArticles(formattedArticles);
+      }
+    } catch (error) {
+      console.error('Error fetching author articles:', error);
+      toast.error('Failed to load author articles');
+    } finally {
+      setIsLoadingArticles(false);
     }
   };
 
@@ -156,25 +232,145 @@ const Author = () => {
     </motion.div>
   );
 
+  // Create a custom title for the sections
+  const SectionTitle = (
+    <div className="container mx-auto flex items-center justify-center xl:justify-start mb-6">
+      <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold antialiased translate-y-10">
+        <div className="gradient-text inline-block">
+          <span 
+            className={cn(
+              "cursor-pointer transition-colors", 
+              activeSection === 'reviews' ? "text-rose-500" : "text-muted-foreground hover:text-rose-400"
+            )}
+            onClick={() => setActiveSection('reviews')}
+          >
+            REVIEWS
+          </span>
+          <span className="text-muted-foreground mx-4">|</span>
+          <span 
+            className={cn(
+              "cursor-pointer transition-colors", 
+              activeSection === 'articles' ? "text-rose-500" : "text-muted-foreground hover:text-rose-400"
+            )}
+            onClick={() => setActiveSection('articles')}
+          >
+            ARTICLES
+          </span>
+        </div>
+      </h2>
+    </div>
+  );
+
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       <StaticStarsBackground />
       <AuroraBackground />
       <ShootingStarsBackground />
 
       <div className="relative z-10 container mx-auto px-4 py-0 -mt-3">
-        {/* Author's Reviews with the author profile in the middle column */}
         <div className="-mt-3">
-          <SectionContainer
-            id="author-reviews"
-            title="Reviews"
-            sectionType="reviews"
-            authorId={author.id}
-            variant="medium"
-            className="py-4"
-            showTitle={true}
-            dotNavPosition={AuthorProfileCard}
-          />
+          {/* Always render the title in the same position */}
+          <div className="py-4">
+            {SectionTitle}
+          </div>
+          
+          {activeSection === 'reviews' && (
+            <SectionContainer
+              id="author-reviews"
+              title={<div style={{visibility: 'hidden'}}>{SectionTitle}</div>}
+              sectionType="reviews"
+              authorId={author.id}
+              variant="medium"
+              className="py-0 -mt-16"
+              showTitle={true}
+              dotNavPosition={AuthorProfileCard}
+            />
+          )}
+
+          {activeSection === 'articles' && (
+            <div className="py-0 -mt-16">
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] items-center gap-4 mb-2 md:mb-4">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold antialiased text-center xl:text-left">
+                  <div style={{visibility: 'hidden'}} className="gradient-text inline-block">
+                    {SectionTitle}
+                  </div>
+                </h2>
+                
+                <div className="hidden sm:flex justify-center relative z-[9999]">
+                  {AuthorProfileCard}
+                </div>
+                
+                <div /> {/* Empty div for the third column */}
+              </div>
+
+              <div className="flex flex-col items-center">
+                {isLoadingArticles ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500" />
+                  </div>
+                ) : authorArticles.length === 0 ? (
+                  <div className="text-center py-8">
+                    <h3 className="text-xl font-medium mb-2">No Articles Yet</h3>
+                    <p className="text-muted-foreground">This author hasn't published any articles yet.</p>
+                  </div>
+                ) : (
+                  <>
+                    <Carousel
+                      opts={{
+                        align: "start",
+                        loop: true,
+                        skipSnaps: false,
+                        dragFree: false,
+                      }}
+                      className="w-full"
+                    >
+                      <div className="flex items-center justify-end gap-2 mb-4">
+                        <CarouselPrevious 
+                          className="static transform-none data-[disabled]:opacity-30 h-9 w-9 border-rose-400 text-rose-400 hover:bg-rose-50 hover:text-rose-500"
+                          aria-label="Previous slide"
+                        />
+                        <CarouselNext 
+                          className="static transform-none data-[disabled]:opacity-30 h-9 w-9 border-rose-400 text-rose-400 hover:bg-rose-50 hover:text-rose-500"
+                          aria-label="Next slide"
+                        />
+                      </div>
+                      <CarouselContent>
+                        <CarouselItem>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+                            {authorArticles.slice(0, Math.min(authorArticles.length, 9)).map((article, index) => (
+                              <div key={article.id} className="w-full">
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                                >
+                                  <ArticleLargeCard
+                                    id={article.id}
+                                    title={article.title}
+                                    image={article.image}
+                                    imagePosition={article.imagePosition}
+                                    excerpt={article.summary}
+                                    author={article.author}
+                                    likes={article.likes}
+                                  />
+                                </motion.div>
+                              </div>
+                            ))}
+                          </div>
+                        </CarouselItem>
+                      </CarouselContent>
+                    </Carousel>
+                    {/* Add mobile dots at the bottom */}
+                    <div className="block sm:hidden w-full mt-4">
+                      <div className="flex justify-center relative z-[9999]">
+                        {AuthorProfileCard}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

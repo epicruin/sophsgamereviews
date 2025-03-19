@@ -127,7 +127,7 @@ export const LatestArticlesSection = () => {
   console.log("Slides created:", slides.length);
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 pt-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold antialiased">
           <div className="gradient-text inline-block">
@@ -180,7 +180,7 @@ export const LatestArticlesSection = () => {
         <CarouselContent>
           {slides.map((slide) => (
             <CarouselItem key={slide.slideIndex}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-3">
                 {slide.items.slice(0, Math.min(3, slide.items.length)).map((article) => (
                   <div key={article.id} className="w-full">
                     <ArticleLargeCard 
@@ -198,7 +198,7 @@ export const LatestArticlesSection = () => {
               </div>
               
               {slide.items.length > 3 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8 mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-3 mt-3">
                   {slide.items.slice(3, 6).map((article) => (
                     <div key={article.id} className="w-full">
                       <ArticleLargeCard 
@@ -217,7 +217,7 @@ export const LatestArticlesSection = () => {
               )}
               
               {slide.items.length > 6 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8 mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-3 mt-3">
                   {slide.items.slice(6, 9).map((article) => (
                     <div key={article.id} className="w-full">
                       <ArticleLargeCard 

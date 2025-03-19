@@ -404,11 +404,11 @@ const Index = () => {
         <HeroSection />
       </section>
       
-      <section id="carousel-sections" className="mb-0 pb-0">
+      <section id="carousel-sections" className="min-h-screen pb-16">
         <SectionsCarousel sections={orderedSections} />
       </section>
 
-      <section id="latest-articles" className="mt-4 pb-4">
+      <section id="latest-articles" className="min-h-[90vh] pb-16">
         <LatestArticlesSection />
       </section>
     </div>
