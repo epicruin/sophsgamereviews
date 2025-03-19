@@ -28,6 +28,7 @@ interface Article {
     username: string;
     avatar_url?: string;
   };
+  likes?: number;
 }
 
 export const LatestArticlesSection = () => {
@@ -91,7 +92,42 @@ export const LatestArticlesSection = () => {
       if (error) {
         throw error;
       }
-      setArticles(articlesData || []);
+
+      // Initialize articles with likes=0
+      const articlesWithLikes: Article[] = (articlesData || []).map(article => ({
+        ...article,
+        likes: 0
+      }));
+
+      // Fetch likes for all articles
+      if (articlesWithLikes.length > 0) {
+        try {
+          const likesPromises = articlesWithLikes.map(article => 
+            supabase
+              .from('likes')
+              .select('*', { count: 'exact' })
+              .eq('article_id', article.id)
+              .then(({ count, error }) => {
+                if (error) {
+                  console.error(`Error fetching likes for article ${article.id}:`, error);
+                  return 0;
+                }
+                return count || 0;
+              })
+          );
+
+          const likesResults = await Promise.all(likesPromises);
+          
+          // Update articles with likes counts
+          articlesWithLikes.forEach((article, index) => {
+            article.likes = likesResults[index];
+          });
+        } catch (likesError) {
+          console.error("Error fetching likes for articles:", likesError);
+        }
+      }
+
+      setArticles(articlesWithLikes);
     } catch (error) {
       console.error("Error fetching latest articles:", error);
     } finally {
@@ -192,6 +228,7 @@ export const LatestArticlesSection = () => {
                         name: article.author?.username || 'Anonymous',
                         avatar: article.author?.avatar_url || '',
                       }}
+                      likes={article.likes}
                     />
                   </div>
                 ))}
@@ -210,6 +247,7 @@ export const LatestArticlesSection = () => {
                           name: article.author?.username || 'Anonymous',
                           avatar: article.author?.avatar_url || '',
                         }}
+                        likes={article.likes}
                       />
                     </div>
                   ))}
@@ -229,6 +267,7 @@ export const LatestArticlesSection = () => {
                           name: article.author?.username || 'Anonymous',
                           avatar: article.author?.avatar_url || '',
                         }}
+                        likes={article.likes}
                       />
                     </div>
                   ))}
