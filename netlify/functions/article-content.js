@@ -73,12 +73,27 @@ exports.handler = async function(event, context) {
     const title = articleTitle || "New Article";
     
     const prompts = {
-      titleAndSummary: `Create a catchy title and an engaging summary for an article about ${title} for a female gaming audience. The summary should be 2-3 sentences that hook the reader.
+      titleAndSummary: `Create a captivating title and engaging summary for an article about ${title} for a female gaming audience.
 
-      Return your response in JSON format with the following structure:
+      IMPORTANT GUIDELINES:
+      1. Title should be:
+         - Attention-grabbing and unique
+         - 5-10 words long
+         - Include a gaming-related hook or buzzword
+         - Avoid clickbait but be intriguing
+         - Use active voice
+      
+      2. Summary should be:
+         - 2-3 sentences that hook the reader
+         - Include a specific gaming insight or statistic
+         - Create curiosity without revealing everything
+         - Written in a conversational, engaging tone
+         - End with a teaser that makes readers want more
+
+      Example Format (but be more creative):
       {
-        "title": "The catchy title here",
-        "summary": "The engaging summary here"
+        "title": "Why Dark Souls Changed How We Think About Difficulty in Games",
+        "summary": "The debate around game difficulty has transformed dramatically since Dark Souls redefined the meaning of challenge in gaming. Our deep dive reveals surprising data about how female gamers approach challenging content, and why the 'git gud' mentality is finally evolving. Get ready to challenge everything you thought you knew about difficulty settings."
       }`,
       
       imageQuery: `Create a search query to find a compelling header image for an article titled "${title}" about gaming. The query should be specific enough to find relevant images but broad enough to return good results.`,
@@ -91,23 +106,30 @@ exports.handler = async function(event, context) {
     try {
       console.log(`Processing ${section} for article: ${title}`);
       
-      // Use Perplexity for titleAndSummary to get better results with research
+      // Use OpenAI for all sections including titleAndSummary
       if (section === 'titleAndSummary') {
-        console.log(`Using Perplexity API for ${section}`);
-        const completion = await perplexity.chat.completions.create({
+        console.log(`Using GPT-4o-mini for ${section}`);
+        const completion = await openai.chat.completions.create({
           messages: [
             {
               role: "system",
-              content: "You are a professional content creator for a female-focused gaming website. Your task is to generate compelling gaming-related titles and summaries for female gamers. All content MUST be specifically related to video games, gaming culture, or the gaming industry, and appeal to a female gaming audience."
+              content: `You are an expert content strategist for a female-focused gaming website. You excel at creating compelling, SEO-friendly titles and summaries that specifically appeal to female gamers while maintaining journalistic integrity. Your titles are known for being creative and engaging without resorting to clickbait.
+
+Key strengths:
+- Understanding what resonates with female gamers
+- Balancing catchiness with credibility
+- Creating titles that perform well on social media
+- Writing summaries that hook readers immediately`
             },
             {
               role: "user",
               content: prompts[section]
             }
           ],
-          model: "sonar-pro",
-          temperature: 0.7,
-          max_tokens: 500
+          model: "gpt-4o-mini",
+          temperature: 0.8,
+          max_tokens: 500,
+          response_format: { type: "text" }
         });
         
         const response = completion.choices[0].message.content;
