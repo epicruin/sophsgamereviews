@@ -552,7 +552,7 @@ export const AIReviewSpinner = ({ onReviewCreated }: { onReviewCreated: () => vo
       }
     }}>
       <DialogTrigger asChild>
-        <Button>
+        <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
           <Wand2 className="h-4 w-4 mr-2" />
           AI Review Spinner
         </Button>
