@@ -26,6 +26,10 @@ export interface BackgroundSettings {
   ready: boolean;
 }
 
+type BackgroundSettingValue = {
+  background: BackgroundType;
+};
+
 // Function to get cached settings from localStorage
 const getCachedSettings = (): { 
   homepageBackground: BackgroundType | null, 
@@ -98,17 +102,31 @@ export function useBackgroundSettings(): BackgroundSettings {
           .from('site_settings')
           .select('value')
           .eq('key', 'homepage_background')
-          .single();
+          .single<{ value: BackgroundSettingValue }>();
 
         // Load modal background setting
         const { data: modalSetting, error: modalError } = await supabase
           .from('site_settings')
           .select('value')
           .eq('key', 'modal_background')
-          .single();
+          .single<{ value: BackgroundSettingValue }>();
 
-        if (homepageError || modalError) {
-          console.error("Error loading background settings:", homepageError || modalError);
+        // Load review background setting
+        const { data: reviewSetting, error: reviewError } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'review_background')
+          .single<{ value: BackgroundSettingValue }>();
+
+        // Load article background setting
+        const { data: articleSetting, error: articleError } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'article_background')
+          .single<{ value: BackgroundSettingValue }>();
+
+        if (homepageError || modalError || reviewError || articleError) {
+          console.error("Error loading background settings:", homepageError || modalError || reviewError || articleError);
           setSettings(prev => ({
             ...prev,
             isLoading: false,
@@ -117,49 +135,46 @@ export function useBackgroundSettings(): BackgroundSettings {
           }));
           return;
         }
-        
-        // Get the fetched values
-        const newHomepageBackground = (homepageSetting?.value || 'aurora') as BackgroundType;
-        const newModalBackground = (modalSetting?.value || 'auroraBlue') as BackgroundType;
-        
-        // For review and article backgrounds, use the cached values or fallbacks
-        const newReviewBackground = cachedSettings.reviewBackground || newHomepageBackground;
-        const newArticleBackground = cachedSettings.articleBackground || newModalBackground;
-        
-        // Check if settings have changed from what we're currently using
-        const hasChanged = 
-          newHomepageBackground !== settings.homepageBackground ||
-          newModalBackground !== settings.modalBackground ||
-          newReviewBackground !== settings.reviewBackground ||
-          newArticleBackground !== settings.articleBackground;
-        
-        // If settings have changed, update both UI and cache
-        if (hasChanged) {
-          setSettings({
-            homepageBackground: newHomepageBackground,
-            modalBackground: newModalBackground,
-            reviewBackground: newReviewBackground,
-            articleBackground: newArticleBackground,
-            isLoading: false,
-            error: null,
-            ready: true
-          });
-          
-          // Update cached values
-          cacheSettings(
-            newHomepageBackground, 
-            newModalBackground, 
-            newReviewBackground, 
-            newArticleBackground
-          );
-        } else {
-          // Just update loading state if settings haven't changed
-          setSettings(prev => ({
-            ...prev,
+
+        // Get the fetched values with fallbacks
+        const newHomepageBackground = (homepageSetting?.value?.background || 'aurora') as BackgroundType;
+        const newModalBackground = (modalSetting?.value?.background || 'auroraBlue') as BackgroundType;
+        const newReviewBackground = (reviewSetting?.value?.background || 'aurora') as BackgroundType;
+        const newArticleBackground = (articleSetting?.value?.background || 'auroraBlue') as BackgroundType;
+
+        setSettings(currentSettings => {
+          const hasChanged = 
+            newHomepageBackground !== currentSettings.homepageBackground ||
+            newModalBackground !== currentSettings.modalBackground ||
+            newReviewBackground !== currentSettings.reviewBackground ||
+            newArticleBackground !== currentSettings.articleBackground;
+
+          if (hasChanged) {
+            // Update cached values
+            cacheSettings(
+              newHomepageBackground, 
+              newModalBackground, 
+              newReviewBackground, 
+              newArticleBackground
+            );
+
+            return {
+              homepageBackground: newHomepageBackground,
+              modalBackground: newModalBackground,
+              reviewBackground: newReviewBackground,
+              articleBackground: newArticleBackground,
+              isLoading: false,
+              error: null,
+              ready: true
+            };
+          }
+
+          return {
+            ...currentSettings,
             isLoading: false,
             ready: true
-          }));
-        }
+          };
+        });
       } catch (error) {
         console.error("Error fetching background settings:", error);
         setSettings(prev => ({

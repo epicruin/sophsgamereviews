@@ -64,41 +64,46 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .eq('key', 'modal_background')
         .single();
 
+      const { data: reviewSetting, error: reviewError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'review_background')
+        .single();
+
+      const { data: articleSetting, error: articleError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'article_background')
+        .single();
+
       if (homepageSetting) {
-        setHomepageBackground(homepageSetting.value);
+        const value = JSON.parse(homepageSetting.value);
+        setHomepageBackground(value.background);
       }
       
       if (modalSetting) {
-        setModalBackground(modalSetting.value);
+        const value = JSON.parse(modalSetting.value);
+        setModalBackground(value.background);
       }
 
-      // Load review and article backgrounds from localStorage
-      try {
-        const storedReviewBackground = localStorage.getItem('sophsreviews_review_background');
-        const storedArticleBackground = localStorage.getItem('sophsreviews_article_background');
-        
-        if (storedReviewBackground) {
-          setReviewBackground(storedReviewBackground);
-        } else {
-          // Default to homepage background
-          setReviewBackground(homepageSetting?.value || 'aurora');
-        }
-        
-        if (storedArticleBackground) {
-          setArticleBackground(storedArticleBackground);
-        } else {
-          // Default to modal background
-          setArticleBackground(modalSetting?.value || 'auroraBlue');
-        }
-      } catch (localStorageError) {
-        console.warn('Error reading from localStorage:', localStorageError);
-        // Set defaults if localStorage fails
-        setReviewBackground(homepageSetting?.value || 'aurora');
-        setArticleBackground(modalSetting?.value || 'auroraBlue');
+      if (reviewSetting) {
+        const value = JSON.parse(reviewSetting.value);
+        setReviewBackground(value.background);
+      } else {
+        // Default to homepage background if not set
+        setReviewBackground(homepageSetting ? JSON.parse(homepageSetting.value).background : 'aurora');
       }
 
-      if (homepageError || modalError) {
-        console.error("Error loading settings:", homepageError || modalError);
+      if (articleSetting) {
+        const value = JSON.parse(articleSetting.value);
+        setArticleBackground(value.background);
+      } else {
+        // Default to modal background if not set
+        setArticleBackground(modalSetting ? JSON.parse(modalSetting.value).background : 'auroraBlue');
+      }
+
+      if (homepageError || modalError || reviewError || articleError) {
+        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError);
         toast.error("Failed to load background settings");
       }
     } catch (error) {
@@ -125,7 +130,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       const { error: homepageError } = await supabase
         .from('site_settings')
         .update({ 
-          value: homepageBackground,
+          value: JSON.stringify({ background: homepageBackground }),
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         })
@@ -135,23 +140,44 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       const { error: modalError } = await supabase
         .from('site_settings')
         .update({ 
-          value: modalBackground,
+          value: JSON.stringify({ background: modalBackground }),
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         })
         .eq('key', 'modal_background');
 
-      // Save review and article backgrounds to localStorage
+      // Update review background
+      const { error: reviewError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'review_background',
+          value: JSON.stringify({ background: reviewBackground }),
+          description: 'Background type for single review pages: "aurora" or other valid background types',
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      // Update article background
+      const { error: articleError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'article_background',
+          value: JSON.stringify({ background: articleBackground }),
+          description: 'Background type for single article pages: "aurora" or other valid background types',
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      // Save to localStorage as backup
       try {
         localStorage.setItem('sophsreviews_review_background', reviewBackground);
         localStorage.setItem('sophsreviews_article_background', articleBackground);
       } catch (localStorageError) {
         console.warn('Error writing to localStorage:', localStorageError);
-        toast.warning("Could not save review and article background preferences");
       }
 
-      if (homepageError || modalError) {
-        console.error("Error saving settings:", homepageError || modalError);
+      if (homepageError || modalError || reviewError || articleError) {
+        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError);
         toast.error("Failed to save background settings");
       } else {
         toast.success("Background settings saved successfully");
