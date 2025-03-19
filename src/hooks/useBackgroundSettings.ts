@@ -137,10 +137,24 @@ export function useBackgroundSettings(): BackgroundSettings {
         }
 
         // Get the fetched values with fallbacks
-        const newHomepageBackground = (homepageSetting?.value?.background || 'aurora') as BackgroundType;
-        const newModalBackground = (modalSetting?.value?.background || 'auroraBlue') as BackgroundType;
-        const newReviewBackground = (reviewSetting?.value?.background || 'aurora') as BackgroundType;
-        const newArticleBackground = (articleSetting?.value?.background || 'auroraBlue') as BackgroundType;
+        const newHomepageBackground = (homepageSetting?.value && typeof homepageSetting.value === 'string' ? JSON.parse(homepageSetting.value).background : 'aurora') as BackgroundType;
+        const newModalBackground = (modalSetting?.value && typeof modalSetting.value === 'string' ? JSON.parse(modalSetting.value).background : 'auroraBlue') as BackgroundType;
+        const newReviewBackground = (reviewSetting?.value && typeof reviewSetting.value === 'string' ? JSON.parse(reviewSetting.value).background : 'aurora') as BackgroundType;
+        const newArticleBackground = (articleSetting?.value && typeof articleSetting.value === 'string' ? JSON.parse(articleSetting.value).background : 'auroraBlue') as BackgroundType;
+
+        console.log('Database values:', {
+          homepage: homepageSetting?.value,
+          modal: modalSetting?.value,
+          review: reviewSetting?.value,
+          article: articleSetting?.value
+        });
+
+        console.log('Parsed values:', {
+          homepage: newHomepageBackground,
+          modal: newModalBackground,
+          review: newReviewBackground,
+          article: newArticleBackground
+        });
 
         setSettings(currentSettings => {
           const hasChanged = 
@@ -192,7 +206,7 @@ export function useBackgroundSettings(): BackgroundSettings {
     const subscription = supabase
       .channel('site_settings_changes')
       .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'site_settings' }, 
+        { event: '*', schema: 'public', table: 'site_settings' }, 
         () => {
           // Reload settings when changes happen
           loadSettings();

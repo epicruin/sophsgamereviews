@@ -129,49 +129,51 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       // Update homepage background
       const { error: homepageError } = await supabase
         .from('site_settings')
-        .upsert({ 
-          key: 'homepage_background',
+        .update({ 
           value: JSON.stringify({ background: homepageBackground }),
           description: 'Background type for the homepage: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        });
+        })
+        .eq('key', 'homepage_background');
 
       // Update modal background
       const { error: modalError } = await supabase
         .from('site_settings')
-        .upsert({ 
-          key: 'modal_background',
+        .update({ 
           value: JSON.stringify({ background: modalBackground }),
           description: 'Background type for modals and dialogs: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        });
+        })
+        .eq('key', 'modal_background');
 
       // Update review background
       const { error: reviewError } = await supabase
         .from('site_settings')
-        .upsert({ 
-          key: 'review_background',
+        .update({ 
           value: JSON.stringify({ background: reviewBackground }),
           description: 'Background type for single review pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        });
+        })
+        .eq('key', 'review_background');
 
       // Update article background
       const { error: articleError } = await supabase
         .from('site_settings')
-        .upsert({ 
-          key: 'article_background',
+        .update({ 
           value: JSON.stringify({ background: articleBackground }),
           description: 'Background type for single article pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        });
+        })
+        .eq('key', 'article_background');
 
       // Save to localStorage as backup
       try {
+        localStorage.setItem('sophsreviews_homepage_background', homepageBackground);
+        localStorage.setItem('sophsreviews_modal_background', modalBackground);
         localStorage.setItem('sophsreviews_review_background', reviewBackground);
         localStorage.setItem('sophsreviews_article_background', articleBackground);
       } catch (localStorageError) {
