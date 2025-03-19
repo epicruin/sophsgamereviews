@@ -15,7 +15,7 @@ import {
 import { ImageSearchButton } from "@/components/ui/image-search-button";
 import { ArticleTitleGenerator } from "@/components/ui/article-title-generator";
 
-type GenerationStep = 'titleAndSummary' | 'content' | 'tldr' | 'image' | 'database';
+type GenerationStep = 'titleAndSummary' | 'content' | 'tldr' | 'database';
 
 type GenerationStatus = 'pending' | 'inProgress' | 'completed' | 'error';
 
@@ -28,7 +28,6 @@ const GENERATION_STEPS: { key: GenerationStep; label: string }[] = [
   { key: 'titleAndSummary', label: 'Generating Title & Summary' },
   { key: 'content', label: 'Writing Article Content' },
   { key: 'tldr', label: 'Creating TL;DR Summary' },
-  { key: 'image', label: 'Finding Featured Image' },
   { key: 'database', label: 'Saving to Database' }
 ];
 
@@ -194,8 +193,7 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           const results = [];
           const generationSteps: (keyof ArticleInfo)[] = [
             'content',
-            'tldr',
-            'imageQuery'
+            'tldr'
           ];
 
           for (const step of generationSteps) {
@@ -214,26 +212,6 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           // Extract the generated content
           const contentData = results.find(r => r.content) || {};
           const tldrData = results.find(r => r.tldr) || {};
-          const imageQueryData = results.find(r => r.imageQuery) || {};
-
-          // Generate image based on the imageQuery
-          let imageUrl = "";
-          updateArticleProgress(index, 'image', 'inProgress');
-          try {
-            // Default to article title if no image query was generated
-            const imageQuery = imageQueryData.imageQuery || workingArticle.title;
-            
-            // This would normally call an image search API
-            // For now, we'll use a placeholder
-            imageUrl = `https://source.unsplash.com/random/1200x800/?${encodeURIComponent(imageQuery)}`;
-            
-            updateArticleProgress(index, 'image', 'completed');
-          } catch (error: any) {
-            console.error('Error getting image:', error);
-            updateArticleProgress(index, 'image', 'error', error.message);
-            // Default image if search fails
-            imageUrl = "https://source.unsplash.com/random/1200x800/?article";
-          }
 
           // Prepare for database save
           updateArticleProgress(index, 'database', 'inProgress');
@@ -263,7 +241,7 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
             summary: workingArticle.summary,
             content: contentData.content || "Content generation failed. Please try again.",
             tldr: tldrData.tldr || "TL;DR generation failed. Please try again.",
-            image: imageUrl,
+            image: "", // Empty string for image, to be added manually
             author_id: session.user.id,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
