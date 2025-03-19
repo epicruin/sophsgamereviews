@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette, ChevronRight, ChevronLeft, FileText, User, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIReviewSpinner } from "@/components/admin/AIReviewSpinner";
@@ -737,24 +737,25 @@ const AdminDashboard = () => {
       </header>
       <main className="container mx-auto px-4 py-8">
         <Card className="p-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Style Settings</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <Palette className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Style Settings</h2>
           </div>
           <BackgroundSettingsDialog />
         </Card>
 
         <Card className="p-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xl font-semibold">Homepage Section Settings</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <FileText className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Homepage Section Settings</h2>
           </div>
           <SectionOrderDialog />
         </Card>
 
         <Card className="p-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Swords className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Custom Sections</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <Swords className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Custom Sections</h2>
           </div>
           <div className="space-y-4">
             {Object.entries(customSections).map(([sectionId, name]) => (
@@ -793,9 +794,9 @@ const AdminDashboard = () => {
         </Card>
 
         <Card className="p-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Medal className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Genre of the Month</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <Medal className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Genre of the Month</h2>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <div className="w-full sm:flex-1">
@@ -827,7 +828,10 @@ const AdminDashboard = () => {
         </Card>
 
         <Card className="p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-6">Author Info</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <User className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Author Info</h2>
+          </div>
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -891,7 +895,10 @@ const AdminDashboard = () => {
         </Card>
 
         <Card className="p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-6">Published Content</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <FileText className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Published Content</h2>
+          </div>
           <Tabs defaultValue="reviews" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
@@ -1023,7 +1030,10 @@ const AdminDashboard = () => {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-6">Scheduled Content</h2>
+          <div className="flex flex-col items-center justify-center gap-2 mb-6">
+            <Clock className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold text-center">Scheduled Content</h2>
+          </div>
           <Tabs defaultValue="reviews" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
