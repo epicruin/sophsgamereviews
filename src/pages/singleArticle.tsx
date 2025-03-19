@@ -522,7 +522,9 @@ const SingleArticle = () => {
                   align: "start",
                   loop: true,
                   skipSnaps: false,
-                  dragFree: true,
+                  dragFree: false,
+                  containScroll: "trimSnaps",
+                  slidesToScroll: 3
                 }}
                 className="w-full"
               >
@@ -566,7 +568,9 @@ const SingleArticle = () => {
                   align: "start",
                   loop: true,
                   skipSnaps: false,
-                  dragFree: true,
+                  dragFree: false,
+                  containScroll: "trimSnaps",
+                  slidesToScroll: 4
                 }}
                 className="w-full"
               >
