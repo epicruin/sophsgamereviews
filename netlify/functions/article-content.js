@@ -76,8 +76,8 @@ exports.handler = async function(event, context) {
       titleAndSummary: `Create a viral, SEO-optimized title and summary for an article about ${title} targeting female gamers.
 
       TITLE GUIDELINES:
-      - Use proven formulas: "Why X Changes Everything", "X Secrets", "What X Reveals About Y"
-      - Include numbers when relevant: "7 Ways", "5 Hidden", "3 Secrets"
+      - Use proven formulas: "Why X Changes Everything", "What X Reveals About Y"
+      - Focus on revelations: "The Truth Behind", "What Players Discovered"
       - Add emotional triggers: "Shocking", "Game-Changing", "Mind-Blowing"
       - Use power words: "Ultimate", "Essential", "Revolutionary"
       - Create curiosity gaps that demand clicks
@@ -92,9 +92,9 @@ exports.handler = async function(event, context) {
       - Keep it under 155 characters for SEO
 
       Example High-Performance Titles:
-      - "7 Shocking Ways Female Gamers Are Changing Esports Forever"
       - "The Hidden Truth Behind Gaming's Most Controversial Trend"
       - "Why This Indie Game's Success Has Developers Worried"
+      - "What Elden Ring Really Reveals About Modern Gaming"
       
       Format:
       {
