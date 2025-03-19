@@ -23,7 +23,7 @@ interface Article {
   summary: string;
   image: string;
   published_date: string;
-  author_id: string;
+  scheduled_for?: string | null;
   author?: {
     username: string;
     avatar_url?: string;
@@ -71,16 +71,27 @@ export const LatestArticlesSection = () => {
       setIsLoading(true);
       const now = new Date().toISOString();
 
-      const { data, error } = await supabase
+      const { data: articlesData, error } = await supabase
         .from('articles')
-        .select('id, title, summary, image, published_date, author_id, author:profiles(username, avatar_url)')
-        .lte('published_date', now)
-        .is('scheduled_for', null)
+        .select(`
+          id,
+          title,
+          summary,
+          image,
+          published_date,
+          scheduled_for,
+          author:profiles!inner(
+            username,
+            avatar_url
+          )
+        `)
+        .or(`scheduled_for.is.null,scheduled_for.lt.${now}`) // Only published articles
         .order('published_date', { ascending: false })
-        .limit(6);
 
-      if (error) throw error;
-      setArticles(data || []);
+      if (error) {
+        throw error;
+      }
+      setArticles(articlesData || []);
     } catch (error) {
       console.error("Error fetching latest articles:", error);
     } finally {
@@ -103,28 +114,40 @@ export const LatestArticlesSection = () => {
     return null; // Don't show the section if there are no articles
   }
 
-  // Split articles into chunks for the carousel (2 rows of 3)
+  // Split articles into chunks for the carousel (3 rows of 3)
   const getArticleSlides = () => {
-    const slidesCount = Math.ceil(articles.length / 6);
+    const slidesCount = Math.ceil(articles.length / 9);
     return Array.from({ length: slidesCount }).map((_, slideIndex) => ({
       slideIndex,
-      items: articles.slice(slideIndex * 6, (slideIndex + 1) * 6)
+      items: articles.slice(slideIndex * 9, (slideIndex + 1) * 9)
     }));
   };
 
   const slides = getArticleSlides();
+  console.log("Slides created:", slides.length);
 
   return (
-    <div className="container mx-auto px-4 py-16">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold antialiased">
           <div className="gradient-text inline-block">
             Latest Articles
           </div>
         </h2>
-        
+      </div>
+      
+      <Carousel
+        opts={{
+          align: "start",
+          loop: true,
+          skipSnaps: false,
+          dragFree: false,
+        }}
+        className="w-full"
+        setApi={setCarouselApi}
+      >
         {slides.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2 mb-4">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -154,18 +177,6 @@ export const LatestArticlesSection = () => {
             </TooltipProvider>
           </div>
         )}
-      </div>
-      
-      <Carousel
-        opts={{
-          align: "start",
-          loop: true,
-          skipSnaps: false,
-          dragFree: false,
-        }}
-        className="w-full"
-        setApi={setCarouselApi}
-      >
         <CarouselContent>
           {slides.map((slide) => (
             <CarouselItem key={slide.slideIndex}>
@@ -204,27 +215,29 @@ export const LatestArticlesSection = () => {
                   ))}
                 </div>
               )}
+              
+              {slide.items.length > 6 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8 mt-8">
+                  {slide.items.slice(6, 9).map((article) => (
+                    <div key={article.id} className="w-full">
+                      <ArticleLargeCard 
+                        id={article.id}
+                        title={article.title}
+                        image={article.image}
+                        excerpt={article.summary}
+                        author={{
+                          name: article.author?.username || 'Anonymous',
+                          avatar: article.author?.avatar_url || '',
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </CarouselItem>
           ))}
         </CarouselContent>
       </Carousel>
-      
-      {slides.length > 1 && (
-        <div className="flex justify-center mt-6">
-          <div className="flex gap-1">
-            {Array.from({ length: count }).map((_, i) => (
-              <button
-                key={i}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  i === current ? "bg-rose-500" : "bg-rose-500/30"
-                }`}
-                onClick={() => carouselApi?.scrollTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }; 

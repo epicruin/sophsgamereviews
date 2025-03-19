@@ -190,7 +190,7 @@ const SingleArticle = () => {
         `)
         .or(`scheduled_for.is.null,scheduled_for.lt.${now}`) // Only published reviews
         .order('created_at', { ascending: false })
-        .limit(24);
+        .limit(100);
 
       if (reviewsError) throw reviewsError;
 

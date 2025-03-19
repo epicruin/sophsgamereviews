@@ -134,23 +134,45 @@ const Index = () => {
       // Current scroll position
       const currentScroll = window.scrollY;
       
+      // Get articles section
+      const articlesSection = document.getElementById('latest-articles');
+      if (!articlesSection) return;
+      
+      const articlesSectionTop = articlesSection.offsetTop;
+      
       if (e.key === 'ArrowDown') {
-        // If we're at the top, scroll to the content
+        // If we're at the top, scroll to the sections
         if (currentScroll < viewportHeight / 2) {
           window.scrollTo({
             top: viewportHeight,
             behavior: 'smooth'
           });
-          e.preventDefault(); // Prevent default scrolling
+          e.preventDefault();
+        } 
+        // If we're at sections but not yet at articles, scroll to articles
+        else if (currentScroll < articlesSectionTop - (viewportHeight / 2)) {
+          window.scrollTo({
+            top: articlesSectionTop,
+            behavior: 'smooth'
+          });
+          e.preventDefault();
         }
       } else if (e.key === 'ArrowUp') {
-        // If we're in the content, scroll to the top
-        if (currentScroll >= viewportHeight / 2) {
+        // If we're at articles section, scroll to sections
+        if (currentScroll >= articlesSectionTop - 100) {
+          window.scrollTo({
+            top: viewportHeight,
+            behavior: 'smooth'
+          });
+          e.preventDefault();
+        } 
+        // If we're at sections, scroll to top
+        else if (currentScroll >= viewportHeight / 2) {
           window.scrollTo({
             top: 0,
             behavior: 'smooth'
           });
-          e.preventDefault(); // Prevent default scrolling
+          e.preventDefault();
         }
       }
     };
@@ -386,7 +408,7 @@ const Index = () => {
         <SectionsCarousel sections={orderedSections} />
       </section>
 
-      <section id="latest-articles" className="mt-12">
+      <section id="latest-articles" className="mt-4 pb-4">
         <LatestArticlesSection />
       </section>
     </div>
