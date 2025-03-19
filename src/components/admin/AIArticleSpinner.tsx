@@ -96,23 +96,47 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
     });
   };
 
-  const generateSummaryForTitle = async (articleTitle: string): Promise<string> => {
-    try {
-      const result = await generateArticleContent(articleTitle, 'titleAndSummary');
-      
-      // Extract the summary from the result
-      if (result.titleAndSummary) {
-        if (typeof result.titleAndSummary === 'object' && result.titleAndSummary.summary) {
-          return result.titleAndSummary.summary;
-        } else if (typeof result.titleAndSummary === 'string') {
-          return result.titleAndSummary;
+  const generateWithRetries = async (title: string, step: keyof ArticleInfo, maxRetries = 10): Promise<Partial<ArticleInfo>> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await generateArticleContent(title, step);
+        return result;
+      } catch (error: any) {
+        console.error(`Error in ${step} generation attempt ${attempt}:`, error);
+        if (attempt === maxRetries) {
+          throw new Error(`Failed to generate ${step} after ${maxRetries} attempts: ${error.message}`);
         }
+        // Wait a short time before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      return ""; // Default empty summary if extraction fails
-    } catch (error) {
-      console.error("Error generating summary:", error);
-      return ""; // Return empty string on error
     }
+    throw new Error(`Failed to generate ${step} after ${maxRetries} attempts`);
+  };
+
+  const generateSummaryForTitle = async (articleTitle: string, maxRetries = 10): Promise<string> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await generateArticleContent(articleTitle, 'titleAndSummary');
+        
+        // Extract the summary from the result
+        if (result.titleAndSummary) {
+          if (typeof result.titleAndSummary === 'object' && result.titleAndSummary.summary) {
+            return result.titleAndSummary.summary;
+          } else if (typeof result.titleAndSummary === 'string') {
+            return result.titleAndSummary;
+          }
+        }
+        return ""; // Default empty summary if extraction fails
+      } catch (error: any) {
+        console.error(`Error in summary generation attempt ${attempt}:`, error);
+        if (attempt === maxRetries) {
+          throw new Error(`Failed to generate summary after ${maxRetries} attempts: ${error.message}`);
+        }
+        // Wait a short time before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    throw new Error(`Failed to generate summary after ${maxRetries} attempts`);
   };
 
   const generateArticles = async () => {
@@ -198,7 +222,7 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           for (const step of generationSteps) {
             updateArticleProgress(index, step as GenerationStep, 'inProgress');
             try {
-              const result = await generateArticleContent(workingArticle.title, step);
+              const result = await generateWithRetries(workingArticle.title, step);
               results.push(result);
               updateArticleProgress(index, step as GenerationStep, 'completed');
             } catch (error: any) {
