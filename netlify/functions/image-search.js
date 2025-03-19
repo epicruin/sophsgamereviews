@@ -68,29 +68,20 @@ exports.handler = async function(event, context) {
       // Use Perplexity for image search
       console.log(`Searching for images with query: "${query}"`);
       
-      const systemPrompt = `Return up to 3 high-quality, free stock image URLs (Unsplash, Pexels, Pixabay) in this format:
-      ["url1.jpg", "url2.jpg"]
-      
-      Rules:
-      - Only direct image URLs (.jpg, .png, .webp)
-      - Return fewer if can't find 3 good ones
-      - No explanations
-      - Must be accessible URLs`;
-      
       const completion = await perplexity.chat.completions.create({
         messages: [
           {
             role: "system",
-            content: systemPrompt
+            content: "Return up to 3 high-quality image URLs from any reputable source. Format: [\"url1.jpg\",\"url2.jpg\",\"url3.jpg\"]. Direct image URLs only (.jpg/.png/.webp). No text."
           },
           {
             role: "user",
-            content: `${query} gaming article header image`
+            content: `${query}`
           }
         ],
         model: "sonar-pro",
-        temperature: 0.7,
-        max_tokens: 1000
+        temperature: 0.3,
+        max_tokens: 500
       });
       
       const response = completion.choices[0].message.content;

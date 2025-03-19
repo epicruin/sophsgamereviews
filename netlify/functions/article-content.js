@@ -355,9 +355,9 @@ exports.handler = async function(event, context) {
         };
       }
       
-      // Use Perplexity only for imageQuery, OpenAI for everything else
+      // Generate concise image search query using Perplexity
       if (section === 'imageQuery') {
-        console.log(`Using Perplexity API for image search query generation`);
+        console.log(`Using Perplexity to generate concise image search query`);
         const completion = await perplexity.chat.completions.create({
           messages: [
             {
