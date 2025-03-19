@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { motion } from "framer-motion";
 import { MediumCard } from "@/components/cards/MediumCard";
+import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
 
 // Type for latest reviews which only includes fields needed for MediumCard
 interface LatestReview {
@@ -37,11 +38,26 @@ interface LatestReview {
   genre: string;
 }
 
+// Type for latest articles
+interface LatestArticle {
+  id: string;
+  title: string;
+  image: string;
+  imagePosition?: number;
+  summary: string;
+  author: {
+    name: string;
+    avatar: string;
+  };
+  likes: number;
+}
+
 const SingleReview = () => {
   const { id } = useParams<{ id: string }>();
   const [review, setReview] = useState<ReviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [latestReviews, setLatestReviews] = useState<LatestReview[]>([]);
+  const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = '';
@@ -56,8 +72,54 @@ const SingleReview = () => {
     if (id) {
       fetchReview(id);
       fetchLatestReviews(id);
+      fetchLatestArticles();
     }
   }, [id]);
+
+  const fetchLatestArticles = async () => {
+    try {
+      const now = new Date().toISOString();
+      
+      const { data: articlesData, error: articlesError } = await supabase
+        .from('articles')
+        .select(`
+          id,
+          title,
+          image,
+          summary,
+          published_date,
+          scheduled_for,
+          author:profiles!inner(
+            username,
+            avatar_url
+          )
+        `)
+        .or(`scheduled_for.is.null,scheduled_for.lt.${now}`) // Only published articles
+        .order('created_at', { ascending: false })
+        .limit(18);
+
+      if (articlesError) throw articlesError;
+
+      if (articlesData) {
+        const formattedArticles: LatestArticle[] = articlesData.map(article => ({
+          id: article.id,
+          title: article.title,
+          image: article.image,
+          imagePosition: 50, // Default position
+          summary: article.summary,
+          author: {
+            name: article.author?.username || 'Anonymous',
+            avatar: article.author?.avatar_url || 'https://i.pravatar.cc/150',
+          },
+          likes: 0 // Default value
+        }));
+
+        setLatestArticles(formattedArticles);
+      }
+    } catch (error) {
+      console.error('Error fetching latest articles:', error);
+    }
+  };
 
   const fetchLatestReviews = async (currentReviewId: string) => {
     try {
@@ -418,6 +480,50 @@ const SingleReview = () => {
                         transition={{ duration: 0.6, delay: index * 0.1 }}
                       >
                         <MediumCard {...review} />
+                      </motion.div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="flex items-center justify-end space-x-2 mt-4">
+                  <CarouselPrevious className="border-rose-400 text-rose-400 hover:bg-rose-50 hover:text-rose-500" />
+                  <CarouselNext className="border-rose-400 text-rose-400 hover:bg-rose-50 hover:text-rose-500" />
+                </div>
+              </Carousel>
+            </Card>
+          )}
+          
+          {/* Latest Articles Carousel */}
+          {latestArticles.length > 0 && (
+            <Card className="p-8 bg-card/95 backdrop-blur-md mt-8 mb-12">
+              <h3 className="text-2xl font-semibold mb-6 flex items-center justify-center gap-2 gradient-text">
+                Latest Articles
+              </h3>
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                  skipSnaps: false,
+                  dragFree: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-4">
+                  {latestArticles.map((article, index) => (
+                    <CarouselItem key={article.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, delay: index * 0.1 }}
+                      >
+                        <ArticleLargeCard
+                          id={article.id}
+                          title={article.title}
+                          image={article.image}
+                          imagePosition={article.imagePosition}
+                          excerpt={article.summary}
+                          author={article.author}
+                          likes={article.likes}
+                        />
                       </motion.div>
                     </CarouselItem>
                   ))}
