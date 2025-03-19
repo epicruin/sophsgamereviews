@@ -370,8 +370,8 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
                 <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="aurora">Colour: Pink (static)</SelectItem>
-                <SelectItem value="auroraBlue">Colour: Blue (static)</SelectItem>
+                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
+                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
                 <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
                 <SelectItem value="peach">Colour: Peach (static)</SelectItem>
                 <SelectItem value="mint">Colour: Mint (static)</SelectItem>
