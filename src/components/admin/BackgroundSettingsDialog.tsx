@@ -94,7 +94,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
 
       // Set defaults if no settings exist
       const defaultHomepage = 'aurora';
-      const defaultModal = 'auroraBlue';
+      const defaultModal = 'staticPink';
       const defaultGameWheel = 'staticPink';
 
       // Parse and set homepage background
@@ -126,7 +126,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         const value = JSON.parse(articleSetting.value);
         setArticleBackground(value.background);
       } else {
-        setArticleBackground(defaultModal);
+        setArticleBackground(defaultHomepage);
       }
       
       // Parse and set author background
