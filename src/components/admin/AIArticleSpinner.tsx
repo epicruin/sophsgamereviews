@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ImageSearchButton } from "@/components/ui/image-search-button";
 import { ArticleTitleGenerator } from "@/components/ui/article-title-generator";
 
 type GenerationStep = 'titleAndSummary' | 'content' | 'tldr' | 'database';
