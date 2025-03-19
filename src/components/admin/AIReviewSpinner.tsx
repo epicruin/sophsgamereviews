@@ -146,7 +146,7 @@ export const AIReviewSpinner = ({ onReviewCreated }: { onReviewCreated: () => vo
     setGameTitles(newTitles);
   };
 
-  const findGenreWithRetries = async (title: string, maxRetries = 3): Promise<string | null> => {
+  const findGenreWithRetries = async (title: string, maxRetries = 10): Promise<string | null> => {
     const genreList = genres.map(g => g.name).join(", ");
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -183,6 +183,23 @@ export const AIReviewSpinner = ({ onReviewCreated }: { onReviewCreated: () => vo
     
     console.warn(`No genre found after ${maxRetries} attempts for ${title}`);
     return null;
+  };
+
+  const generateWithRetries = async (title: string, step: keyof GameInfo, maxRetries = 10): Promise<Partial<GameInfo>> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await generateGameInfo(title, step);
+        return result;
+      } catch (error: any) {
+        console.error(`Error in ${step} generation attempt ${attempt}:`, error);
+        if (attempt === maxRetries) {
+          throw new Error(`Failed to generate ${step} after ${maxRetries} attempts: ${error.message}`);
+        }
+        // Wait a short time before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    throw new Error(`Failed to generate ${step} after ${maxRetries} attempts`);
   };
 
   const updateGameProgress = (
@@ -275,7 +292,7 @@ export const AIReviewSpinner = ({ onReviewCreated }: { onReviewCreated: () => vo
           for (const step of generationSteps) {
             updateGameProgress(index, step, 'inProgress');
             try {
-              const result = await generateGameInfo(game.title, step);
+              const result = await generateWithRetries(game.title, step);
               results.push(result);
               updateGameProgress(index, step, 'completed');
               
@@ -310,10 +327,10 @@ export const AIReviewSpinner = ({ onReviewCreated }: { onReviewCreated: () => vo
             imagesData = { images: { cover: '', screenshots: [] } };
           }
 
-          // Get YouTube trailer
+          // Get YouTube trailer with retries
           updateGameProgress(index, 'youtubeTrailer', 'inProgress');
           try {
-            const trailerResult = await generateGameInfo(game.title, 'youtubeTrailer');
+            const trailerResult = await generateWithRetries(game.title, 'youtubeTrailer');
             results.push(trailerResult);
             updateGameProgress(index, 'youtubeTrailer', 'completed');
           } catch (error: any) {
