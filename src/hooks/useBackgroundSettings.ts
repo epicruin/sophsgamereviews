@@ -7,7 +7,6 @@ const STORAGE_KEY_MODAL = 'sophsreviews_modal_background';
 const STORAGE_KEY_REVIEW = 'sophsreviews_review_background';
 const STORAGE_KEY_ARTICLE = 'sophsreviews_article_background';
 const STORAGE_KEY_AUTHOR = 'sophsreviews_author_background';
-const STORAGE_KEY_WHEEL = 'sophsreviews_wheel_background';
 
 // Valid background types
 type BackgroundType = 'aurora' | 'auroraBlue' | 'staticPink' | 'staticBlue' | 'lavender' | 'peach' | 'mint' | 'lilac' | 'rosePetal' | 'babyBlue' | 'coral' | 'periwinkle';
@@ -24,7 +23,6 @@ export interface BackgroundSettings {
   reviewBackground: BackgroundType;
   articleBackground: BackgroundType;
   authorBackground: BackgroundType;
-  wheelBackground: BackgroundType;
   isLoading: boolean;
   error: Error | null;
   ready: boolean;
@@ -40,8 +38,7 @@ const getCachedSettings = (): {
   modalBackground: BackgroundType | null,
   reviewBackground: BackgroundType | null,
   articleBackground: BackgroundType | null,
-  authorBackground: BackgroundType | null,
-  wheelBackground: BackgroundType | null
+  authorBackground: BackgroundType | null
 } => {
   try {
     const homepageBackground = localStorage.getItem(STORAGE_KEY_HOMEPAGE);
@@ -49,7 +46,6 @@ const getCachedSettings = (): {
     const reviewBackground = localStorage.getItem(STORAGE_KEY_REVIEW);
     const articleBackground = localStorage.getItem(STORAGE_KEY_ARTICLE);
     const authorBackground = localStorage.getItem(STORAGE_KEY_AUTHOR);
-    const wheelBackground = localStorage.getItem(STORAGE_KEY_WHEEL);
     
     return {
       homepageBackground: homepageBackground && validBackgrounds.includes(homepageBackground) 
@@ -66,9 +62,6 @@ const getCachedSettings = (): {
         : null,
       authorBackground: authorBackground && validBackgrounds.includes(authorBackground)
         ? authorBackground as BackgroundType
-        : null,
-      wheelBackground: wheelBackground && validBackgrounds.includes(wheelBackground)
-        ? wheelBackground as BackgroundType
         : null
     };
   } catch (error) {
@@ -78,8 +71,7 @@ const getCachedSettings = (): {
       modalBackground: null, 
       reviewBackground: null, 
       articleBackground: null,
-      authorBackground: null,
-      wheelBackground: null
+      authorBackground: null 
     };
   }
 };
@@ -90,8 +82,7 @@ const cacheSettings = (
   modalBackground: BackgroundType,
   reviewBackground: BackgroundType,
   articleBackground: BackgroundType,
-  authorBackground: BackgroundType,
-  wheelBackground: BackgroundType
+  authorBackground: BackgroundType
 ) => {
   try {
     localStorage.setItem(STORAGE_KEY_HOMEPAGE, homepageBackground);
@@ -99,7 +90,6 @@ const cacheSettings = (
     localStorage.setItem(STORAGE_KEY_REVIEW, reviewBackground);
     localStorage.setItem(STORAGE_KEY_ARTICLE, articleBackground);
     localStorage.setItem(STORAGE_KEY_AUTHOR, authorBackground);
-    localStorage.setItem(STORAGE_KEY_WHEEL, wheelBackground);
   } catch (error) {
     console.warn('Error writing to localStorage:', error);
   }
@@ -115,7 +105,6 @@ export function useBackgroundSettings(): BackgroundSettings {
     reviewBackground: cachedSettings.reviewBackground || 'aurora',
     articleBackground: cachedSettings.articleBackground || 'auroraBlue',
     authorBackground: cachedSettings.authorBackground || 'aurora',
-    wheelBackground: cachedSettings.wheelBackground || 'staticPink',
     isLoading: true,
     error: null,
     ready: false
@@ -159,15 +148,8 @@ export function useBackgroundSettings(): BackgroundSettings {
           .eq('key', 'author_background')
           .single<{ value: BackgroundSettingValue }>();
 
-        // Load wheel background setting
-        const { data: wheelSetting, error: wheelError } = await supabase
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'wheel_background')
-          .single<{ value: BackgroundSettingValue }>();
-
-        if (homepageError || modalError || reviewError || articleError || authorError || wheelError) {
-          console.error("Error loading background settings:", homepageError || modalError || reviewError || articleError || authorError || wheelError);
+        if (homepageError || modalError || reviewError || articleError || authorError) {
+          console.error("Error loading background settings:", homepageError || modalError || reviewError || articleError || authorError);
           setSettings(prev => ({
             ...prev,
             isLoading: false,
@@ -183,15 +165,13 @@ export function useBackgroundSettings(): BackgroundSettings {
         const newReviewBackground = (reviewSetting?.value && typeof reviewSetting.value === 'string' ? JSON.parse(reviewSetting.value).background : 'aurora') as BackgroundType;
         const newArticleBackground = (articleSetting?.value && typeof articleSetting.value === 'string' ? JSON.parse(articleSetting.value).background : 'auroraBlue') as BackgroundType;
         const newAuthorBackground = (authorSetting?.value && typeof authorSetting.value === 'string' ? JSON.parse(authorSetting.value).background : 'aurora') as BackgroundType;
-        const newWheelBackground = (wheelSetting?.value && typeof wheelSetting.value === 'string' ? JSON.parse(wheelSetting.value).background : 'staticPink') as BackgroundType;
 
         console.log('Database values:', {
           homepage: homepageSetting?.value,
           modal: modalSetting?.value,
           review: reviewSetting?.value,
           article: articleSetting?.value,
-          author: authorSetting?.value,
-          wheel: wheelSetting?.value
+          author: authorSetting?.value
         });
 
         console.log('Parsed values:', {
@@ -199,8 +179,7 @@ export function useBackgroundSettings(): BackgroundSettings {
           modal: newModalBackground,
           review: newReviewBackground,
           article: newArticleBackground,
-          author: newAuthorBackground,
-          wheel: newWheelBackground
+          author: newAuthorBackground
         });
 
         setSettings(currentSettings => {
@@ -209,8 +188,7 @@ export function useBackgroundSettings(): BackgroundSettings {
             newModalBackground !== currentSettings.modalBackground ||
             newReviewBackground !== currentSettings.reviewBackground ||
             newArticleBackground !== currentSettings.articleBackground ||
-            newAuthorBackground !== currentSettings.authorBackground ||
-            newWheelBackground !== currentSettings.wheelBackground;
+            newAuthorBackground !== currentSettings.authorBackground;
 
           if (hasChanged) {
             // Update cached values
@@ -219,8 +197,7 @@ export function useBackgroundSettings(): BackgroundSettings {
               newModalBackground, 
               newReviewBackground, 
               newArticleBackground,
-              newAuthorBackground,
-              newWheelBackground
+              newAuthorBackground
             );
 
             return {
@@ -229,7 +206,6 @@ export function useBackgroundSettings(): BackgroundSettings {
               reviewBackground: newReviewBackground,
               articleBackground: newArticleBackground,
               authorBackground: newAuthorBackground,
-              wheelBackground: newWheelBackground,
               isLoading: false,
               error: null,
               ready: true

@@ -26,12 +26,12 @@ interface BackgroundSettingsDialogProps {
 
 const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [homepageBackground, setHomepageBackground] = useState<string>("aurora");
-  const [modalBackground, setModalBackground] = useState<string>("auroraBlue");
-  const [reviewBackground, setReviewBackground] = useState<string>("aurora");
-  const [articleBackground, setArticleBackground] = useState<string>("auroraBlue");
-  const [authorBackground, setAuthorBackground] = useState<string>("aurora");
-  const [wheelBackground, setWheelBackground] = useState<string>("staticPink");
+  const [isLoading, setIsLoading] = useState(true);
+  const [homepageBackground, setHomepageBackground] = useState<string | null>(null);
+  const [modalBackground, setModalBackground] = useState<string | null>(null);
+  const [reviewBackground, setReviewBackground] = useState<string | null>(null);
+  const [articleBackground, setArticleBackground] = useState<string | null>(null);
+  const [authorBackground, setAuthorBackground] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -42,6 +42,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
 
   const loadSettings = async () => {
     try {
+      setIsLoading(true);
       // Check admin status first
       const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
         user_id: (await supabase.auth.getUser()).data.user?.id
@@ -84,61 +85,59 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .eq('key', 'author_background')
         .single();
 
-      const { data: wheelSetting, error: wheelError } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'wheel_background')
-        .single();
+      // Set defaults if no settings exist
+      const defaultHomepage = 'aurora';
+      const defaultModal = 'auroraBlue';
 
-      if (homepageSetting) {
+      // Parse and set homepage background
+      if (homepageSetting?.value) {
         const value = JSON.parse(homepageSetting.value);
         setHomepageBackground(value.background);
+      } else {
+        setHomepageBackground(defaultHomepage);
       }
       
-      if (modalSetting) {
+      // Parse and set modal background
+      if (modalSetting?.value) {
         const value = JSON.parse(modalSetting.value);
         setModalBackground(value.background);
+      } else {
+        setModalBackground(defaultModal);
       }
 
-      if (reviewSetting) {
+      // Parse and set review background
+      if (reviewSetting?.value) {
         const value = JSON.parse(reviewSetting.value);
         setReviewBackground(value.background);
       } else {
-        // Default to homepage background if not set
-        setReviewBackground(homepageSetting ? JSON.parse(homepageSetting.value).background : 'aurora');
+        setReviewBackground(defaultHomepage);
       }
 
-      if (articleSetting) {
+      // Parse and set article background
+      if (articleSetting?.value) {
         const value = JSON.parse(articleSetting.value);
         setArticleBackground(value.background);
       } else {
-        // Default to modal background if not set
-        setArticleBackground(modalSetting ? JSON.parse(modalSetting.value).background : 'auroraBlue');
+        setArticleBackground(defaultModal);
       }
       
-      if (authorSetting) {
+      // Parse and set author background
+      if (authorSetting?.value) {
         const value = JSON.parse(authorSetting.value);
         setAuthorBackground(value.background);
       } else {
-        // Default to homepage background if not set
-        setAuthorBackground(homepageSetting ? JSON.parse(homepageSetting.value).background : 'aurora');
+        setAuthorBackground(defaultHomepage);
       }
 
-      if (wheelSetting) {
-        const value = JSON.parse(wheelSetting.value);
-        setWheelBackground(value.background);
-      } else {
-        // Default to a static background for wheel
-        setWheelBackground('staticPink');
-      }
-
-      if (homepageError || modalError || reviewError || articleError || authorError || wheelError) {
-        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError || wheelError);
+      if (homepageError || modalError || reviewError || articleError || authorError) {
+        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError);
         toast.error("Failed to load background settings");
       }
     } catch (error) {
       console.error("Error:", error);
       toast.error("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -165,6 +164,8 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           description: 'Background type for the homepage: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
+        }, {
+          onConflict: 'key'
         });
 
       // Update modal background
@@ -176,6 +177,8 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           description: 'Background type for modals and dialogs: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
+        }, {
+          onConflict: 'key'
         });
 
       // Update review background
@@ -187,6 +190,8 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           description: 'Background type for single review pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
+        }, {
+          onConflict: 'key'
         });
 
       // Update article background
@@ -198,6 +203,8 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           description: 'Background type for single article pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
+        }, {
+          onConflict: 'key'
         });
 
       // Update author background
@@ -209,33 +216,23 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           description: 'Background type for author profile pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        });
-
-      // Update wheel background
-      const { error: wheelError } = await supabase
-        .from('site_settings')
-        .upsert({ 
-          key: 'wheel_background',
-          value: JSON.stringify({ background: wheelBackground }),
-          description: 'Background type for the game wheel modal: only static background types',
-          updated_at: new Date().toISOString(),
-          updated_by: (await supabase.auth.getUser()).data.user?.id
+        }, {
+          onConflict: 'key'
         });
 
       // Save to localStorage as backup
       try {
-        localStorage.setItem('sophsreviews_homepage_background', homepageBackground);
-        localStorage.setItem('sophsreviews_modal_background', modalBackground);
-        localStorage.setItem('sophsreviews_review_background', reviewBackground);
-        localStorage.setItem('sophsreviews_article_background', articleBackground);
-        localStorage.setItem('sophsreviews_author_background', authorBackground);
-        localStorage.setItem('sophsreviews_wheel_background', wheelBackground);
+        localStorage.setItem('sophsreviews_homepage_background', homepageBackground || '');
+        localStorage.setItem('sophsreviews_modal_background', modalBackground || '');
+        localStorage.setItem('sophsreviews_review_background', reviewBackground || '');
+        localStorage.setItem('sophsreviews_article_background', articleBackground || '');
+        localStorage.setItem('sophsreviews_author_background', authorBackground || '');
       } catch (localStorageError) {
         console.warn('Error writing to localStorage:', localStorageError);
       }
 
-      if (homepageError || modalError || reviewError || articleError || authorError || wheelError) {
-        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError || authorError || wheelError);
+      if (homepageError || modalError || reviewError || articleError || authorError) {
+        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError || authorError);
         toast.error("Failed to save background settings");
       } else {
         toast.success("Background settings saved successfully");
@@ -270,6 +267,9 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
     return gradients[color as keyof typeof gradients] || gradients.aurora;
   };
 
+  // Disable the dialog content while loading
+  const isDisabled = isLoading || isSaving;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -280,11 +280,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]" style={{ background: getModalBackground(modalBackground) }}>
+      <DialogContent className="sm:max-w-[425px]" style={{ background: getModalBackground(modalBackground || 'aurora') }}>
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">Background Settings</DialogTitle>
           <DialogDescription>
             Configure the background effects for different parts of the site.
+            {isLoading && " Loading settings..."}
           </DialogDescription>
         </DialogHeader>
         
@@ -292,11 +293,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           <div className="space-y-2">
             <Label htmlFor="homepageBackground">Homepage Background</Label>
             <Select 
-              value={homepageBackground} 
+              value={homepageBackground || undefined}
               onValueChange={setHomepageBackground}
+              disabled={isDisabled}
             >
               <SelectTrigger id="homepageBackground">
-                <SelectValue placeholder="Select background" />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
@@ -318,11 +320,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           <div className="space-y-2">
             <Label htmlFor="modalBackground">Modal Background</Label>
             <Select 
-              value={modalBackground} 
+              value={modalBackground || undefined}
               onValueChange={setModalBackground}
+              disabled={isDisabled}
             >
               <SelectTrigger id="modalBackground">
-                <SelectValue placeholder="Select background" />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="aurora">Colour: Pink (static)</SelectItem>
@@ -337,17 +340,17 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
                 <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Note: Only static backgrounds are available for modals.</p>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="reviewBackground">Review Page Background</Label>
             <Select 
-              value={reviewBackground} 
+              value={reviewBackground || undefined}
               onValueChange={setReviewBackground}
+              disabled={isDisabled}
             >
               <SelectTrigger id="reviewBackground">
-                <SelectValue placeholder="Select background" />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
@@ -369,11 +372,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           <div className="space-y-2">
             <Label htmlFor="articleBackground">Article Page Background</Label>
             <Select 
-              value={articleBackground} 
+              value={articleBackground || undefined}
               onValueChange={setArticleBackground}
+              disabled={isDisabled}
             >
               <SelectTrigger id="articleBackground">
-                <SelectValue placeholder="Select background" />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
@@ -395,11 +399,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           <div className="space-y-2">
             <Label htmlFor="authorBackground">Author Page Background</Label>
             <Select 
-              value={authorBackground} 
+              value={authorBackground || undefined}
               onValueChange={setAuthorBackground}
+              disabled={isDisabled}
             >
               <SelectTrigger id="authorBackground">
-                <SelectValue placeholder="Select background" />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
@@ -417,45 +422,21 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="wheelBackground">Game Wheel Background</Label>
-            <Select 
-              value={wheelBackground} 
-              onValueChange={setWheelBackground}
-            >
-              <SelectTrigger id="wheelBackground">
-                <SelectValue placeholder="Select background" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
-                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
-                <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
-                <SelectItem value="peach">Colour: Peach (static)</SelectItem>
-                <SelectItem value="mint">Colour: Mint (static)</SelectItem>
-                <SelectItem value="lilac">Colour: Lilac (static)</SelectItem>
-                <SelectItem value="rosePetal">Colour: Rose Petal (static)</SelectItem>
-                <SelectItem value="babyBlue">Colour: Baby Blue (static)</SelectItem>
-                <SelectItem value="coral">Colour: Coral (static)</SelectItem>
-                <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">Note: Only static backgrounds are available for the game wheel.</p>
-          </div>
         </div>
         
         <div className="flex justify-end gap-3">
           <Button 
             variant="outline" 
             onClick={() => setOpen(false)}
+            disabled={isDisabled}
           >
             Cancel
           </Button>
           <Button 
             onClick={saveSettings}
-            disabled={isSaving}
+            disabled={isDisabled}
           >
-            {isSaving ? "Saving..." : "Save Settings"}
+            {isSaving ? "Saving..." : isLoading ? "Loading..." : "Save Settings"}
           </Button>
         </div>
       </DialogContent>

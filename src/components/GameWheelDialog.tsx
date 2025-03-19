@@ -21,7 +21,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useBackgroundSettings } from "@/hooks/useBackgroundSettings";
 
 // Helper function to extract YouTube video ID from URL
 const getYouTubeVideoId = (url: string): string => {
@@ -64,7 +63,6 @@ export function GameWheelDialog() {
   const [showReviewDetails, setShowReviewDetails] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isButtonVisible, setIsButtonVisible] = useState(true);
-  const { wheelBackground } = useBackgroundSettings();
 
   // Add event listener for game state changes
   useEffect(() => {
@@ -199,25 +197,6 @@ export function GameWheelDialog() {
     setSelectedReview(null);
   };
 
-  // Function to get background style based on selected background
-  const getWheelBackground = () => {
-    const gradients = {
-      staticPink: 'linear-gradient(to bottom right, rgb(245, 190, 220), rgb(235, 120, 170), rgb(70, 65, 75))',
-      staticBlue: 'linear-gradient(to bottom right, rgb(180, 210, 250), rgb(140, 180, 245), rgb(65, 70, 85))',
-      lavender: 'linear-gradient(to bottom right, rgb(220, 200, 245), rgb(180, 160, 235), rgb(75, 70, 95))',
-      peach: 'linear-gradient(to bottom right, rgb(245, 205, 180), rgb(235, 165, 140), rgb(85, 70, 75))',
-      mint: 'linear-gradient(to bottom right, rgb(200, 235, 215), rgb(160, 225, 185), rgb(70, 85, 80))',
-      lilac: 'linear-gradient(to bottom right, rgb(225, 205, 245), rgb(185, 165, 235), rgb(80, 70, 95))',
-      rosePetal: 'linear-gradient(to bottom right, rgb(245, 210, 220), rgb(235, 170, 180), rgb(85, 65, 75))',
-      babyBlue: 'linear-gradient(to bottom right, rgb(195, 220, 245), rgb(155, 180, 235), rgb(70, 75, 90))',
-      coral: 'linear-gradient(to bottom right, rgb(245, 195, 185), rgb(235, 155, 145), rgb(90, 70, 75))',
-      periwinkle: 'linear-gradient(to bottom right, rgb(205, 210, 245), rgb(165, 170, 235), rgb(75, 75, 95))'
-    };
-
-    // Default to staticPink if the background is not in the list or is an animated one
-    return gradients[wheelBackground as keyof typeof gradients] || gradients.staticPink;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open);
@@ -253,17 +232,14 @@ export function GameWheelDialog() {
         )}
       </DialogTrigger>
       
-      <DialogContent 
-        className={cn(
-          "p-0 backdrop-blur-sm border-rose-200 max-h-[85vh] mt-12 md:mt-6 overflow-hidden rounded-2xl",
-          showReviewDetails 
-            ? "sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[950px] xl:max-w-[1100px]" 
-            : "sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[600px] xl:max-w-[650px]"
-        )}
-        style={{ background: getWheelBackground() }}
-      >
+      <DialogContent className={cn(
+        "p-0 bg-white/95 backdrop-blur-sm border-rose-200 max-h-[85vh] mt-12 md:mt-6 overflow-hidden rounded-2xl",
+        showReviewDetails 
+          ? "sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[950px] xl:max-w-[1100px]" 
+          : "sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[600px] xl:max-w-[650px]"
+      )}>
         <div className="flex flex-col h-full max-h-[85vh]">
-          <DialogHeader className="p-3 pb-2 border-b border-rose-100/50 bg-white/20 backdrop-blur-sm flex-shrink-0 rounded-t-2xl">
+          <DialogHeader className="p-3 pb-2 border-b border-rose-100 bg-white/95 backdrop-blur-sm flex-shrink-0 rounded-t-2xl">
             {showReviewDetails ? (
               <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-0 sm:justify-between relative">
                 <div className="flex items-center gap-2 order-2 sm:order-1">
