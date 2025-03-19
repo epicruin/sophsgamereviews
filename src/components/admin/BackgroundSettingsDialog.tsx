@@ -30,6 +30,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
   const [modalBackground, setModalBackground] = useState<string>("auroraBlue");
   const [reviewBackground, setReviewBackground] = useState<string>("aurora");
   const [articleBackground, setArticleBackground] = useState<string>("auroraBlue");
+  const [authorBackground, setAuthorBackground] = useState<string>("aurora");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -75,6 +76,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .select('value')
         .eq('key', 'article_background')
         .single();
+        
+      const { data: authorSetting, error: authorError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'author_background')
+        .single();
 
       if (homepageSetting) {
         const value = JSON.parse(homepageSetting.value);
@@ -101,9 +108,17 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         // Default to modal background if not set
         setArticleBackground(modalSetting ? JSON.parse(modalSetting.value).background : 'auroraBlue');
       }
+      
+      if (authorSetting) {
+        const value = JSON.parse(authorSetting.value);
+        setAuthorBackground(value.background);
+      } else {
+        // Default to homepage background if not set
+        setAuthorBackground(homepageSetting ? JSON.parse(homepageSetting.value).background : 'aurora');
+      }
 
-      if (homepageError || modalError || reviewError || articleError) {
-        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError);
+      if (homepageError || modalError || reviewError || articleError || authorError) {
+        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError);
         toast.error("Failed to load background settings");
       }
     } catch (error) {
@@ -129,46 +144,57 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       // Update homepage background
       const { error: homepageError } = await supabase
         .from('site_settings')
-        .update({ 
+        .upsert({ 
+          key: 'homepage_background',
           value: JSON.stringify({ background: homepageBackground }),
           description: 'Background type for the homepage: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('key', 'homepage_background');
+        });
 
       // Update modal background
       const { error: modalError } = await supabase
         .from('site_settings')
-        .update({ 
+        .upsert({ 
+          key: 'modal_background',
           value: JSON.stringify({ background: modalBackground }),
           description: 'Background type for modals and dialogs: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('key', 'modal_background');
+        });
 
       // Update review background
       const { error: reviewError } = await supabase
         .from('site_settings')
-        .update({ 
+        .upsert({ 
+          key: 'review_background',
           value: JSON.stringify({ background: reviewBackground }),
           description: 'Background type for single review pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('key', 'review_background');
+        });
 
       // Update article background
       const { error: articleError } = await supabase
         .from('site_settings')
-        .update({ 
+        .upsert({ 
+          key: 'article_background',
           value: JSON.stringify({ background: articleBackground }),
           description: 'Background type for single article pages: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('key', 'article_background');
+        });
+
+      // Update author background
+      const { error: authorError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'author_background',
+          value: JSON.stringify({ background: authorBackground }),
+          description: 'Background type for author profile pages: "aurora" or other valid background types',
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        });
 
       // Save to localStorage as backup
       try {
@@ -176,12 +202,13 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         localStorage.setItem('sophsreviews_modal_background', modalBackground);
         localStorage.setItem('sophsreviews_review_background', reviewBackground);
         localStorage.setItem('sophsreviews_article_background', articleBackground);
+        localStorage.setItem('sophsreviews_author_background', authorBackground);
       } catch (localStorageError) {
         console.warn('Error writing to localStorage:', localStorageError);
       }
 
-      if (homepageError || modalError || reviewError || articleError) {
-        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError);
+      if (homepageError || modalError || reviewError || articleError || authorError) {
+        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError || authorError);
         toast.error("Failed to save background settings");
       } else {
         toast.success("Background settings saved successfully");
@@ -318,6 +345,32 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
               onValueChange={setArticleBackground}
             >
               <SelectTrigger id="articleBackground">
+                <SelectValue placeholder="Select background" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
+                <SelectItem value="auroraBlue">Aurora (Blue) (animated)</SelectItem>
+                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
+                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
+                <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
+                <SelectItem value="peach">Colour: Peach (static)</SelectItem>
+                <SelectItem value="mint">Colour: Mint (static)</SelectItem>
+                <SelectItem value="lilac">Colour: Lilac (static)</SelectItem>
+                <SelectItem value="rosePetal">Colour: Rose Petal (static)</SelectItem>
+                <SelectItem value="babyBlue">Colour: Baby Blue (static)</SelectItem>
+                <SelectItem value="coral">Colour: Coral (static)</SelectItem>
+                <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="authorBackground">Author Page Background</Label>
+            <Select 
+              value={authorBackground} 
+              onValueChange={setAuthorBackground}
+            >
+              <SelectTrigger id="authorBackground">
                 <SelectValue placeholder="Select background" />
               </SelectTrigger>
               <SelectContent>

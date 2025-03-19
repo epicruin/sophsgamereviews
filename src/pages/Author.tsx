@@ -3,8 +3,10 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AuroraBackground } from "@/components/home/AuroraBackground";
+import { AuroraBackgroundBlue } from "@/components/home/AuroraBackgroundBlue";
 import { ShootingStarsBackground } from "@/components/home/ShootingStarsBackground";
 import { StaticStarsBackground } from "@/components/home/StaticStarsBackground";
+import { StaticBackground } from "@/components/home/StaticBackground";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SectionContainer } from "@/components/shared/SectionContainer";
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/carousel";
 import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
 import { cn } from "@/lib/utils";
+import { useBackgroundSettings } from "@/hooks/useBackgroundSettings";
 
 interface AuthorProfile {
   id: string;
@@ -60,6 +63,7 @@ const Author = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const { authorBackground } = useBackgroundSettings();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -340,8 +344,20 @@ const Author = () => {
 
   return (
     <div className="relative">
+      {/* Conditional background based on authorBackground setting */}
+      {authorBackground === 'aurora' && <AuroraBackground />}
+      {authorBackground === 'auroraBlue' && <AuroraBackgroundBlue />}
+      {authorBackground === 'staticPink' && <StaticBackground color="pink" />}
+      {authorBackground === 'staticBlue' && <StaticBackground color="blue" />}
+      {authorBackground === 'lavender' && <StaticBackground color="lavender" />}
+      {authorBackground === 'peach' && <StaticBackground color="peach" />}
+      {authorBackground === 'mint' && <StaticBackground color="mint" />}
+      {authorBackground === 'lilac' && <StaticBackground color="lilac" />}
+      {authorBackground === 'rosePetal' && <StaticBackground color="rosePetal" />}
+      {authorBackground === 'babyBlue' && <StaticBackground color="babyBlue" />}
+      {authorBackground === 'coral' && <StaticBackground color="coral" />}
+      {authorBackground === 'periwinkle' && <StaticBackground color="periwinkle" />}
       <StaticStarsBackground />
-      <AuroraBackground />
       <ShootingStarsBackground />
 
       <div className="relative z-10 container mx-auto px-4 py-0 -mt-3">
