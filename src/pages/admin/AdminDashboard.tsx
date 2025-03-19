@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette } from "lucide-rea
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIReviewSpinner } from "@/components/admin/AIReviewSpinner";
+import { AIArticleSpinner } from "@/components/admin/AIArticleSpinner";
 import { SectionOrderDialog } from "@/components/admin/SectionOrderDialog";
 import BackgroundSettingsDialog from "@/components/admin/BackgroundSettingsDialog";
 import {
@@ -599,6 +600,7 @@ const AdminDashboard = () => {
                 New Review
               </Button>
               <AIReviewSpinner onReviewCreated={fetchReviews} />
+              <AIArticleSpinner onArticleCreated={fetchArticles} />
               <Button size="sm" variant="outline" onClick={() => navigate("/")}>
                 Frontend
               </Button>
