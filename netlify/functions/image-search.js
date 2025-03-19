@@ -68,21 +68,30 @@ exports.handler = async function(event, context) {
       // Use Perplexity for image search
       console.log(`Searching for images with query: "${query}"`);
       
-      const completion = await perplexity.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "Return up to 3 high-quality image URLs from any reputable source. Format: [\"url1.jpg\",\"url2.jpg\",\"url3.jpg\"]. Direct image URLs only (.jpg/.png/.webp). No text."
-          },
-          {
-            role: "user",
-            content: `${query}`
-          }
-        ],
-        model: "sonar-pro",
-        temperature: 0.3,
-        max_tokens: 500
+      // Create a promise that rejects after 8 seconds
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('API request timed out')), 8000);
       });
+
+      // Race between the API call and the timeout
+      const completion = await Promise.race([
+        perplexity.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "Return up to 3 high-quality image URLs from any reputable source. Format: [\"url1.jpg\",\"url2.jpg\",\"url3.jpg\"]. Direct image URLs only (.jpg/.png/.webp). No text."
+            },
+            {
+              role: "user",
+              content: `${query}`
+            }
+          ],
+          model: "sonar-pro",
+          temperature: 0.3,
+          max_tokens: 500
+        }),
+        timeoutPromise
+      ]);
       
       const response = completion.choices[0].message.content;
       console.log('Perplexity response received', response?.length || 0);
@@ -131,6 +140,19 @@ exports.handler = async function(event, context) {
       }
     } catch (error) {
       console.error('Image search error:', error);
+      
+      // Handle timeout specifically
+      if (error.message === 'API request timed out') {
+        return {
+          statusCode: 408,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            error: 'Request timeout',
+            message: 'The image search took too long. Please try again.',
+            imageUrls: []
+          })
+        };
+      }
       
       return {
         statusCode: 500,
