@@ -131,6 +131,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .from('site_settings')
         .update({ 
           value: JSON.stringify({ background: homepageBackground }),
+          description: 'Background type for the homepage: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         })
@@ -141,6 +142,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .from('site_settings')
         .update({ 
           value: JSON.stringify({ background: modalBackground }),
+          description: 'Background type for modals and dialogs: "aurora" or other valid background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         })
