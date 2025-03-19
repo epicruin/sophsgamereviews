@@ -306,7 +306,7 @@ export const ContentGrid = ({
                 align: "start",
                 loop: true,
                 skipSnaps: false,
-                dragFree: true,
+                dragFree: false,
               }}
               className="w-full"
             >
@@ -342,7 +342,7 @@ export const ContentGrid = ({
                 align: "start",
                 loop: true,
                 skipSnaps: false,
-                dragFree: true,
+                dragFree: false,
               }}
               className="w-full"
             >
@@ -378,7 +378,7 @@ export const ContentGrid = ({
                 align: "start",
                 loop: true,
                 skipSnaps: false,
-                dragFree: true,
+                dragFree: false,
               }}
               className="w-full"
             >
@@ -414,7 +414,7 @@ export const ContentGrid = ({
                 align: "start",
                 loop: true,
                 skipSnaps: false,
-                dragFree: true,
+                dragFree: false,
               }}
               className="w-full"
             >
@@ -450,7 +450,7 @@ export const ContentGrid = ({
               align: "start",
               loop: true,
               skipSnaps: false,
-              dragFree: true,
+              dragFree: false,
             }}
             className="w-full"
           >
@@ -483,6 +483,8 @@ export const ContentGrid = ({
             opts={{
               align: "start",
               loop: true,
+              skipSnaps: false,
+              dragFree: false,
             }}
             className="w-full"
           >
