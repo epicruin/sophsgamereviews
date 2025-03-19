@@ -393,6 +393,31 @@ const AdminDashboard = () => {
     }
   };
 
+  const clearGenreOfMonth = async () => {
+    try {
+      setIsUpdatingGenre(true);
+
+      // Set the current_genre_id to null for the genre_of_month section
+      const { error } = await supabase
+        .from('homepage_section_order')
+        .update({ current_genre_id: null })
+        .eq('section_id', 'genre_of_month');
+
+      if (error) throw error;
+
+      // Reset the local state
+      setSelectedGenreId("");
+      
+      toast.success('Genre of the month cleared');
+      fetchReviews();
+    } catch (error: any) {
+      console.error('Error clearing genre of the month:', error);
+      toast.error('Failed to clear genre of the month');
+    } finally {
+      setIsUpdatingGenre(false);
+    }
+  };
+
   const fetchCurrentGenreOfMonth = async () => {
     try {
       const { data, error } = await supabase
@@ -816,14 +841,25 @@ const AdminDashboard = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button 
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={updateGenreOfMonth}
-              disabled={isUpdatingGenre || !selectedGenreId}
-            >
-              Update Genre of the Month
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button 
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={updateGenreOfMonth}
+                disabled={isUpdatingGenre || !selectedGenreId}
+              >
+                Update Genre of the Month
+              </Button>
+              <Button 
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={clearGenreOfMonth}
+                disabled={isUpdatingGenre}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
         </Card>
 
