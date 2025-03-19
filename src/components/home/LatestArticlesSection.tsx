@@ -37,9 +37,19 @@ export const LatestArticlesSection = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
   useEffect(() => {
     fetchLatestArticles();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -150,20 +160,30 @@ export const LatestArticlesSection = () => {
     return null; // Don't show the section if there are no articles
   }
 
-  // Split articles into chunks for the carousel (3 rows of 3)
+  // Determine article display count based on screen width
+  // 9 on large screens (lg+), 6 on medium screens (md), 3 on small screens (640-768px), 2 on smaller screens (480-640px), 2 on mobile
+  const getArticlesPerPage = () => {
+    if (windowWidth >= 1024) return 9; // lg and above: 9 articles
+    if (windowWidth >= 768) return 6;  // md: 6 articles
+    if (windowWidth >= 640) return 3;  // sm (640-768px): 3 articles
+    if (windowWidth >= 480) return 2;  // sm (480-640px): 2 articles
+    return 2;                          // xs (<480px): 2 articles
+  };
+
+  // Split articles into chunks for the carousel based on screen size
   const getArticleSlides = () => {
-    const slidesCount = Math.ceil(articles.length / 9);
+    const articlesPerPage = getArticlesPerPage();
+    const slidesCount = Math.ceil(articles.length / articlesPerPage);
     return Array.from({ length: slidesCount }).map((_, slideIndex) => ({
       slideIndex,
-      items: articles.slice(slideIndex * 9, (slideIndex + 1) * 9)
+      items: articles.slice(slideIndex * articlesPerPage, (slideIndex + 1) * articlesPerPage)
     }));
   };
 
   const slides = getArticleSlides();
-  console.log("Slides created:", slides.length);
 
   return (
-    <div className="container mx-auto px-4 pt-6">
+    <div id="latest-articles" className="container mx-auto px-4 pt-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold antialiased">
           <div className="gradient-text inline-block">
@@ -216,63 +236,163 @@ export const LatestArticlesSection = () => {
         <CarouselContent>
           {slides.map((slide) => (
             <CarouselItem key={slide.slideIndex}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-3">
-                {slide.items.slice(0, Math.min(3, slide.items.length)).map((article) => (
-                  <div key={article.id} className="w-full">
-                    <ArticleLargeCard 
-                      id={article.id}
-                      title={article.title}
-                      image={article.image}
-                      excerpt={article.summary}
-                      author={{
-                        name: article.author?.username || 'Anonymous',
-                        avatar: article.author?.avatar_url || '',
-                      }}
-                      likes={article.likes}
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-3">
+                {windowWidth < 480 ? (
+                  // For mobile screens (<480px) - up to 2 articles
+                  slide.items.slice(0, 2).map((article) => (
+                    <div key={article.id} className="w-full col-span-1">
+                      <ArticleLargeCard 
+                        id={article.id}
+                        title={article.title}
+                        image={article.image}
+                        excerpt={article.summary}
+                        author={{
+                          name: article.author?.username || 'Anonymous',
+                          avatar: article.author?.avatar_url || '',
+                        }}
+                        likes={article.likes}
+                      />
+                    </div>
+                  ))
+                ) : windowWidth < 640 ? (
+                  // For small screens (480-640px) - up to 2 articles 
+                  slide.items.slice(0, 2).map((article) => (
+                    <div key={article.id} className="w-full col-span-1">
+                      <ArticleLargeCard 
+                        id={article.id}
+                        title={article.title}
+                        image={article.image}
+                        excerpt={article.summary}
+                        author={{
+                          name: article.author?.username || 'Anonymous',
+                          avatar: article.author?.avatar_url || '',
+                        }}
+                        likes={article.likes}
+                      />
+                    </div>
+                  ))
+                ) : windowWidth < 768 ? (
+                  // For small screens (640-768px) - up to 3 articles
+                  slide.items.slice(0, 3).map((article) => (
+                    <div key={article.id} className="w-full col-span-1">
+                      <ArticleLargeCard 
+                        id={article.id}
+                        title={article.title}
+                        image={article.image}
+                        excerpt={article.summary}
+                        author={{
+                          name: article.author?.username || 'Anonymous',
+                          avatar: article.author?.avatar_url || '',
+                        }}
+                        likes={article.likes}
+                      />
+                    </div>
+                  ))
+                ) : windowWidth < 1024 ? (
+                  // For medium screens (up to 6 articles)
+                  <>
+                    {/* First row of 3 */}
+                    {slide.items.slice(0, 3).map((article) => (
+                      <div key={article.id} className="w-full col-span-1">
+                        <ArticleLargeCard 
+                          id={article.id}
+                          title={article.title}
+                          image={article.image}
+                          excerpt={article.summary}
+                          author={{
+                            name: article.author?.username || 'Anonymous',
+                            avatar: article.author?.avatar_url || '',
+                          }}
+                          likes={article.likes}
+                        />
+                      </div>
+                    ))}
+                    
+                    {/* Second row of 3 if there are more */}
+                    {slide.items.length > 3 && (
+                      <>
+                        {slide.items.slice(3, 6).map((article) => (
+                          <div key={article.id} className="w-full col-span-1 mt-3">
+                            <ArticleLargeCard 
+                              id={article.id}
+                              title={article.title}
+                              image={article.image}
+                              excerpt={article.summary}
+                              author={{
+                                name: article.author?.username || 'Anonymous',
+                                avatar: article.author?.avatar_url || '',
+                              }}
+                              likes={article.likes}
+                            />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  // For large screens (up to 9 articles)
+                  <>
+                    {/* First row of 3 */}
+                    {slide.items.slice(0, 3).map((article) => (
+                      <div key={article.id} className="w-full col-span-1">
+                        <ArticleLargeCard 
+                          id={article.id}
+                          title={article.title}
+                          image={article.image}
+                          excerpt={article.summary}
+                          author={{
+                            name: article.author?.username || 'Anonymous',
+                            avatar: article.author?.avatar_url || '',
+                          }}
+                          likes={article.likes}
+                        />
+                      </div>
+                    ))}
+                    
+                    {/* Second row of 3 if there are more */}
+                    {slide.items.length > 3 && (
+                      <>
+                        {slide.items.slice(3, 6).map((article) => (
+                          <div key={article.id} className="w-full col-span-1 mt-3">
+                            <ArticleLargeCard 
+                              id={article.id}
+                              title={article.title}
+                              image={article.image}
+                              excerpt={article.summary}
+                              author={{
+                                name: article.author?.username || 'Anonymous',
+                                avatar: article.author?.avatar_url || '',
+                              }}
+                              likes={article.likes}
+                            />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    
+                    {/* Third row of 3 if there are more */}
+                    {slide.items.length > 6 && (
+                      <>
+                        {slide.items.slice(6, 9).map((article) => (
+                          <div key={article.id} className="w-full col-span-1 mt-3">
+                            <ArticleLargeCard 
+                              id={article.id}
+                              title={article.title}
+                              image={article.image}
+                              excerpt={article.summary}
+                              author={{
+                                name: article.author?.username || 'Anonymous',
+                                avatar: article.author?.avatar_url || '',
+                              }}
+                              likes={article.likes}
+                            />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
-              
-              {slide.items.length > 3 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-3 mt-3">
-                  {slide.items.slice(3, 6).map((article) => (
-                    <div key={article.id} className="w-full">
-                      <ArticleLargeCard 
-                        id={article.id}
-                        title={article.title}
-                        image={article.image}
-                        excerpt={article.summary}
-                        author={{
-                          name: article.author?.username || 'Anonymous',
-                          avatar: article.author?.avatar_url || '',
-                        }}
-                        likes={article.likes}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {slide.items.length > 6 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-3 mt-3">
-                  {slide.items.slice(6, 9).map((article) => (
-                    <div key={article.id} className="w-full">
-                      <ArticleLargeCard 
-                        id={article.id}
-                        title={article.title}
-                        image={article.image}
-                        excerpt={article.summary}
-                        author={{
-                          name: article.author?.username || 'Anonymous',
-                          avatar: article.author?.avatar_url || '',
-                        }}
-                        likes={article.likes}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
             </CarouselItem>
           ))}
         </CarouselContent>
