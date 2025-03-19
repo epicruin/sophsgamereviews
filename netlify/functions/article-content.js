@@ -73,27 +73,33 @@ exports.handler = async function(event, context) {
     const title = articleTitle || "New Article";
     
     const prompts = {
-      titleAndSummary: `Create a captivating title and engaging summary for an article about ${title} for a female gaming audience.
+      titleAndSummary: `Create a viral, SEO-optimized title and summary for an article about ${title} targeting female gamers.
 
-      IMPORTANT GUIDELINES:
-      1. Title should be:
-         - Attention-grabbing and unique
-         - 5-10 words long
-         - Include a gaming-related hook or buzzword
-         - Avoid clickbait but be intriguing
-         - Use active voice
+      TITLE GUIDELINES:
+      - Use proven formulas: "Why X Changes Everything", "X Secrets", "What X Reveals About Y"
+      - Include numbers when relevant: "7 Ways", "5 Hidden", "3 Secrets"
+      - Add emotional triggers: "Shocking", "Game-Changing", "Mind-Blowing"
+      - Use power words: "Ultimate", "Essential", "Revolutionary"
+      - Create curiosity gaps that demand clicks
+      - Keep it under 60 characters for SEO
+      - Make bold claims backed by content
       
-      2. Summary should be:
-         - 2-3 sentences that hook the reader
-         - Include a specific gaming insight or statistic
-         - Create curiosity without revealing everything
-         - Written in a conversational, engaging tone
-         - End with a teaser that makes readers want more
+      SUMMARY GUIDELINES:
+      - Open with a shocking stat or claim
+      - Tease exclusive insights
+      - Promise valuable takeaways
+      - End with clear FOMO
+      - Keep it under 155 characters for SEO
 
-      Example Format (but be more creative):
+      Example High-Performance Titles:
+      - "7 Shocking Ways Female Gamers Are Changing Esports Forever"
+      - "The Hidden Truth Behind Gaming's Most Controversial Trend"
+      - "Why This Indie Game's Success Has Developers Worried"
+      
+      Format:
       {
-        "title": "Why Dark Souls Changed How We Think About Difficulty in Games",
-        "summary": "The debate around game difficulty has transformed dramatically since Dark Souls redefined the meaning of challenge in gaming. Our deep dive reveals surprising data about how female gamers approach challenging content, and why the 'git gud' mentality is finally evolving. Get ready to challenge everything you thought you knew about difficulty settings."
+        "title": "Your viral title here",
+        "summary": "Your SEO-optimized summary that creates intense curiosity and promises value"
       }`,
       
       imageQuery: `Create a search query to find a compelling header image for an article titled "${title}" about gaming. The query should be specific enough to find relevant images but broad enough to return good results.`,
@@ -113,13 +119,12 @@ exports.handler = async function(event, context) {
           messages: [
             {
               role: "system",
-              content: `You are an expert content strategist for a female-focused gaming website. You excel at creating compelling, SEO-friendly titles and summaries that specifically appeal to female gamers while maintaining journalistic integrity. Your titles are known for being creative and engaging without resorting to clickbait.
-
-Key strengths:
-- Understanding what resonates with female gamers
-- Balancing catchiness with credibility
-- Creating titles that perform well on social media
-- Writing summaries that hook readers immediately`
+              content: `You are an expert gaming content strategist specializing in viral, SEO-optimized content. You create titles that dominate search rankings and social shares while maintaining credibility. Your content consistently achieves:
+- High CTR on Google and social media
+- Strong engagement from female gamers
+- Viral sharing potential
+- Top search rankings for gaming terms
+- Perfect balance of intrigue and value`
             },
             {
               role: "user",
