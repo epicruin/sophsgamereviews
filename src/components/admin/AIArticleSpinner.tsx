@@ -118,6 +118,26 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
         return;
       }
 
+      // Get the latest scheduled article date that's in the future
+      const { data: latestArticle } = await supabase
+        .from('articles')
+        .select('scheduled_for')
+        .gt('scheduled_for', new Date().toISOString()) // Only get future scheduled articles
+        .order('scheduled_for', { ascending: false })
+        .limit(1) as { data: { scheduled_for: string | null }[] | null };
+
+      // Set base date as either the latest scheduled article date or current date
+      let baseDate = new Date();
+      baseDate.setHours(12, 0, 0, 0); // Set to noon
+
+      if (latestArticle && latestArticle.length > 0 && latestArticle[0].scheduled_for) {
+        // If we have a future scheduled article, use that as base
+        baseDate = new Date(latestArticle[0].scheduled_for);
+      } else {
+        // If no future articles, start from tomorrow at noon
+        baseDate.setDate(baseDate.getDate() + 1);
+      }
+
       // Process each article title sequentially
       for (const [index, article] of validTitles.entries()) {
         try {
@@ -195,10 +215,24 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
           // Prepare for database save
           updateArticleProgress(index, 'database', 'inProgress');
 
-          // Format scheduled date if provided
+          // Calculate scheduled date (use provided date or default to 7 days after the last scheduled article)
           const scheduledDate = article.scheduledFor 
-            ? new Date(article.scheduledFor) 
-            : new Date();
+            ? new Date(article.scheduledFor)
+            : (() => {
+                if (index === 0) {
+                  // First article: schedule 7 days from base date
+                  const date = new Date(baseDate);
+                  date.setDate(date.getDate() + 7);
+                  baseDate = date;
+                  return date;
+                } else {
+                  // Subsequent articles: schedule 7 days after the previous one
+                  const date = new Date(baseDate);
+                  date.setDate(date.getDate() + 7);
+                  baseDate = date;
+                  return date;
+                }
+              })();
 
           // Prepare article data
           const articleData = {
@@ -211,7 +245,7 @@ export const AIArticleSpinner = ({ onArticleCreated }: { onArticleCreated: () =>
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             published_date: null,
-            scheduled_for: article.scheduledFor ? scheduledDate.toISOString() : null
+            scheduled_for: scheduledDate.toISOString() // Always set a scheduled date
           };
 
           console.log('Attempting to insert article data:', articleData);
