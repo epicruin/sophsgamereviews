@@ -142,6 +142,7 @@ const SingleReview = () => {
       if (articlesError) throw articlesError;
 
       if (articlesData) {
+        // Create initial array with all fields except for the likes
         const formattedArticles: LatestArticle[] = articlesData.map(article => ({
           id: article.id,
           title: article.title,
@@ -152,8 +153,26 @@ const SingleReview = () => {
             name: article.author?.username || 'Anonymous',
             avatar: article.author?.avatar_url || 'https://i.pravatar.cc/150',
           },
-          likes: 0 // Default value
+          likes: 0 // Default value will be updated
         }));
+
+        // Now fetch likes for all articles
+        await Promise.all(
+          formattedArticles.map(async (article, index) => {
+            try {
+              const { data: likesData, error: likesError } = await supabase
+                .from('likes')
+                .select('*')
+                .eq('article_id', article.id);
+
+              if (!likesError && likesData) {
+                formattedArticles[index].likes = likesData.length;
+              }
+            } catch (error) {
+              console.error(`Error fetching likes for article ${article.id}:`, error);
+            }
+          })
+        );
 
         setLatestArticles(formattedArticles);
       }

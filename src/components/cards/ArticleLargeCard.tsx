@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { BookOpen, UserRound, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ArticleLargeCardProps {
   id: string;
@@ -25,10 +27,41 @@ export const ArticleLargeCard = ({
   imagePosition = 50,
   excerpt,
   author,
-  likes = 0,
+  likes: initialLikes,
   isModal = false,
   onArticleClick
 }: ArticleLargeCardProps) => {
+  const [likes, setLikes] = useState(initialLikes || 0);
+
+  useEffect(() => {
+    // If likes were provided as a prop, use that value
+    if (initialLikes !== undefined) {
+      setLikes(initialLikes);
+      return;
+    }
+    
+    // Otherwise fetch likes from database
+    const fetchLikes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('likes')
+          .select('*')
+          .eq('article_id', id);
+        
+        if (error) {
+          console.error('Error fetching likes:', error);
+          return;
+        }
+        
+        setLikes(data?.length || 0);
+      } catch (error) {
+        console.error('Error fetching likes count:', error);
+      }
+    };
+    
+    fetchLikes();
+  }, [id, initialLikes]);
+
   return (
     <Card className="overflow-hidden card-hover group w-full">
       <Link 
