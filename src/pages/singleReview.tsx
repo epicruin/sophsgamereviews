@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ReviewInfo } from "@/components/review/ReviewInfo";
 import { Card } from "@/components/ui/card";
-import { ThumbsUp, ThumbsDown, Star, Medal, Gem, Coffee, Library, Clock, Users } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Star, Medal, Gem, Coffee, Library, Clock, Users, Heart } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StaticStarsBackground } from "@/components/home/StaticStarsBackground";
@@ -21,6 +21,8 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { motion } from "framer-motion";
 import { MediumCard } from "@/components/cards/MediumCard";
 import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 // Type for latest reviews which only includes fields needed for MediumCard
 interface LatestReview {
@@ -58,6 +60,9 @@ const SingleReview = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [latestReviews, setLatestReviews] = useState<LatestReview[]>([]);
   const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
+  const [likes, setLikes] = useState(0);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = '';
@@ -75,6 +80,42 @@ const SingleReview = () => {
       fetchLatestArticles();
     }
   }, [id]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!review) return;
+    
+    const fetchLikesCount = async () => {
+      try {
+        // Get the count of likes for this review
+        const { data, error } = await supabase
+          .from('likes')
+          .select('*')
+          .eq('review_id', review.id);
+        
+        if (error) throw error;
+        setLikes(data?.length || 0);
+      } catch (error) {
+        console.error('Error fetching likes count:', error);
+        toast.error('Failed to load likes count');
+      }
+    };
+
+    // Check if user has liked this review before in localStorage
+    const likedReviews = JSON.parse(localStorage.getItem('likedReviews') || '[]');
+    setHasLiked(likedReviews.includes(review.id));
+
+    fetchLikesCount();
+  }, [review]);
 
   const fetchLatestArticles = async () => {
     try {
@@ -329,6 +370,59 @@ const SingleReview = () => {
     }
   };
 
+  const handleLike = async () => {
+    if (!review) return;
+    
+    try {
+      const likedReviews = JSON.parse(localStorage.getItem('likedReviews') || '[]');
+      
+      if (hasLiked) {
+        // First find all likes for this review
+        const { data: existingLikes, error: fetchError } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('review_id', review.id);
+        
+        if (fetchError) throw fetchError;
+        
+        if (!existingLikes?.length) {
+          console.error('No likes found to delete');
+          return;
+        }
+
+        // Delete one like
+        const { error: deleteError } = await supabase
+          .from('likes')
+          .delete()
+          .eq('id', existingLikes[0].id);
+        
+        if (deleteError) throw deleteError;
+
+        // Remove from local storage
+        const updatedLikedReviews = likedReviews.filter((id: string) => id !== review.id);
+        localStorage.setItem('likedReviews', JSON.stringify(updatedLikedReviews));
+        setHasLiked(false);
+        setLikes(prev => Math.max(0, prev - 1));
+      } else {
+        // Insert new like
+        const { error: insertError } = await supabase
+          .from('likes')
+          .insert({ review_id: review.id });
+        
+        if (insertError) throw insertError;
+
+        // Add to local storage
+        likedReviews.push(review.id);
+        localStorage.setItem('likedReviews', JSON.stringify(likedReviews));
+        setHasLiked(true);
+        setLikes(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error updating like:', error);
+      toast.error('Failed to update like');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
@@ -364,7 +458,87 @@ const SingleReview = () => {
 
       {/* Content */}
       <div className="relative z-30">
-        <ReviewHeader review={review} />
+        <section className="relative w-[99.2vw] h-[85vh] -mt-20 -ml-[calc((99.2vw-100%)/2)]">
+          <div className="absolute inset-0">
+            <img
+              src={review.headingImage || review.image}
+              alt={review.title}
+              className="w-full h-full object-cover"
+              style={{
+                maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)'
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent" />
+          </div>
+
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 z-10">
+            <div className="container mx-auto max-w-6xl mt-20">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white drop-shadow-lg">{review.title}</h1>
+              
+              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-8">
+                <Badge variant="secondary" className="bg-black/40 hover:bg-black/50 backdrop-blur-sm text-white border-none flex items-center gap-1.5 md:gap-2 py-1.5 md:py-2 px-3 md:px-4">
+                  <Star className="w-4 md:w-5 h-4 md:h-5 text-yellow-500 fill-yellow-500" />
+                  <span className="text-base md:text-lg font-semibold">{review.rating}</span>
+                </Badge>
+                <Badge variant="secondary" className="bg-black/40 hover:bg-black/50 backdrop-blur-sm text-white border-none flex items-center gap-1.5 md:gap-2 py-1.5 md:py-2 px-3 md:px-4">
+                  <Clock className="w-4 md:w-5 h-4 md:h-5" />
+                  <span className="text-base md:text-lg">{review.playtime}h playtime</span>
+                </Badge>
+                <Badge className="bg-rose-500 hover:bg-rose-600 text-white border-none py-1.5 md:py-2 px-3 md:px-4 text-base md:text-lg">
+                  {review.genre}
+                </Badge>
+              </div>
+              
+              {/* Heart button in hero section - only visible when not scrolled */}
+              <div className={`flex justify-center w-full mt-4 transition-opacity duration-300 ${isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div className="bg-black/40 backdrop-blur-md p-4 rounded-full shadow-lg transition-all hover:bg-black/50">
+                  <button
+                    onClick={handleLike}
+                    className="flex flex-col items-center gap-2 group"
+                    aria-label={hasLiked ? "Unlike this review" : "Like this review"}
+                  >
+                    <Heart 
+                      className={cn(
+                        "w-12 h-12 stroke-2 transition-all duration-300",
+                        hasLiked 
+                          ? "text-rose-500 fill-rose-500" 
+                          : "text-rose-500 hover:fill-rose-500/20"
+                      )}
+                    />
+                    <span className="text-white text-xl font-semibold">{likes}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Floating like button that follows scroll - only visible when scrolled */}
+        <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-500 ${
+          isScrolled 
+            ? 'opacity-100 translate-x-0' 
+            : 'opacity-0 translate-x-20 pointer-events-none'
+        }`}>
+          <div className="bg-black/40 backdrop-blur-md p-4 rounded-full shadow-lg transition-all hover:bg-black/50">
+            <button
+              onClick={handleLike}
+              className="flex flex-col items-center gap-2"
+              aria-label={hasLiked ? "Unlike this review" : "Like this review"}
+            >
+              <Heart 
+                className={cn(
+                  "w-12 h-12 stroke-2 transition-all duration-300",
+                  hasLiked 
+                    ? "text-rose-500 fill-rose-500" 
+                    : "text-rose-500 hover:fill-rose-500/20"
+                )}
+              />
+              <span className="text-white text-xl font-semibold">{likes}</span>
+            </button>
+          </div>
+        </div>
+        
         <div className="container mx-auto px-4 -mt-16 relative">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Main Content Column */}

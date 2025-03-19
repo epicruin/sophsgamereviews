@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Clock, User, BookOpen, ArrowLeft } from "lucide-react";
+import { Clock, User, BookOpen, ArrowLeft, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { StaticStarsBackground } from "@/components/home/StaticStarsBackground";
 import { AuroraBackground } from "@/components/home/AuroraBackground";
@@ -16,6 +16,8 @@ import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { motion } from "framer-motion";
 import { MediumCard } from "@/components/cards/MediumCard";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface ArticleData {
   id: string;
@@ -71,6 +73,9 @@ const SingleArticle = () => {
   const [error, setError] = useState<string | null>(null);
   const [latestArticles, setLatestArticles] = useState<LatestArticle[]>([]);
   const [latestReviews, setLatestReviews] = useState<LatestReview[]>([]);
+  const [likes, setLikes] = useState(0);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = '';
@@ -217,6 +222,108 @@ const SingleArticle = () => {
     }
   };
 
+  useEffect(() => {
+    if (article?.id) {
+      fetchLikesCount(article.id);
+    }
+  }, [article?.id]);
+
+  const fetchLikesCount = async (articleId: string) => {
+    try {
+      // Get the count of likes for this article
+      const { data, error } = await supabase
+        .from('likes')
+        .select('*')
+        .eq('article_id', articleId);
+      
+      if (error) throw error;
+      setLikes(data?.length || 0);
+      
+      // Check if user has liked this article before in localStorage
+      const likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '[]');
+      setHasLiked(likedArticles.includes(articleId));
+    } catch (error) {
+      console.error('Error fetching likes count:', error);
+      toast.error('Failed to load likes count');
+    }
+  };
+  
+  const handleLike = async () => {
+    if (!article?.id) return;
+    
+    // Get current liked articles from localStorage
+    const likedArticles = JSON.parse(localStorage.getItem('likedArticles') || '[]');
+    
+    if (hasLiked) {
+      // Remove from local storage first
+      const updatedLikedArticles = likedArticles.filter((id: string) => id !== article.id);
+      localStorage.setItem('likedArticles', JSON.stringify(updatedLikedArticles));
+      
+      // Update UI immediately 
+      setHasLiked(false);
+      setLikes(prev => Math.max(0, prev - 1));
+      
+      // Try database operation, but don't block UI update
+      try {
+        // First find all likes for this article
+        const { data: existingLikes, error: fetchError } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('article_id', article.id);
+        
+        if (fetchError) throw fetchError;
+        
+        if (!existingLikes?.length) {
+          console.error('No likes found to delete');
+          return;
+        }
+
+        // Delete one like
+        const { error: deleteError } = await supabase
+          .from('likes')
+          .delete()
+          .eq('id', existingLikes[0].id);
+        
+        if (deleteError) throw deleteError;
+      } catch (error) {
+        console.error('Error removing like in database:', error);
+        // UI already updated, so no need to revert
+      }
+    } else {
+      // Add to local storage first
+      likedArticles.push(article.id);
+      localStorage.setItem('likedArticles', JSON.stringify(likedArticles));
+      
+      // Update UI immediately
+      setHasLiked(true);
+      setLikes(prev => prev + 1);
+      
+      // Try database operation, but don't block UI update
+      try {
+        // Insert new like
+        const { error: insertError } = await supabase
+          .from('likes')
+          .insert({ article_id: article.id });
+        
+        if (insertError) throw insertError;
+      } catch (error) {
+        console.error('Error adding like in database:', error);
+        // UI already updated, so no need to revert
+      }
+    }
+  };
+
+  // Add scroll listener effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center relative">
@@ -269,12 +376,12 @@ const SingleArticle = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent" />
         </div>
         
-        {/* Header content - centered over image */}
+        {/* Header content - centered in image */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 z-10">
           <div className="container mx-auto max-w-6xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white drop-shadow-lg">{article.title}</h1>
             
-            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-8">
               <Badge variant="secondary" className="bg-black/40 hover:bg-black/50 backdrop-blur-sm text-white border-none flex items-center gap-1.5 md:gap-2 py-1.5 md:py-2 px-3 md:px-4">
                 <Clock className="w-4 md:w-5 h-4 md:h-5" />
                 <span className="text-base md:text-lg">{format(new Date(article.published_date || article.created_at), "MMMM d, yyyy")}</span>
@@ -283,9 +390,55 @@ const SingleArticle = () => {
                 Article
               </Badge>
             </div>
+            
+            {/* Heart button in hero section - only visible when not scrolled */}
+            <div className={`flex justify-center w-full mt-4 transition-opacity duration-300 ${isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+              <div className="bg-black/40 backdrop-blur-md p-4 rounded-full shadow-lg transition-all hover:bg-black/50">
+                <button
+                  onClick={handleLike}
+                  className="flex flex-col items-center gap-2 group"
+                  aria-label={hasLiked ? "Unlike this article" : "Like this article"}
+                >
+                  <Heart 
+                    className={cn(
+                      "w-12 h-12 stroke-2 transition-all duration-300",
+                      hasLiked 
+                        ? "text-rose-500 fill-rose-500" 
+                        : "text-rose-500 hover:fill-rose-500/20"
+                    )}
+                  />
+                  <span className="text-white text-xl font-semibold">{likes}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
+      
+      {/* Floating like button that follows scroll - only visible when scrolled */}
+      <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-500 ${
+        isScrolled 
+          ? 'opacity-100 translate-x-0' 
+          : 'opacity-0 translate-x-20 pointer-events-none'
+      }`}>
+        <div className="bg-black/40 backdrop-blur-md p-4 rounded-full shadow-lg transition-all hover:bg-black/50">
+          <button
+            onClick={handleLike}
+            className="flex flex-col items-center gap-2"
+            aria-label={hasLiked ? "Unlike this article" : "Like this article"}
+          >
+            <Heart 
+              className={cn(
+                "w-12 h-12 stroke-2 transition-all duration-300",
+                hasLiked 
+                  ? "text-rose-500 fill-rose-500" 
+                  : "text-rose-500 hover:fill-rose-500/20"
+              )}
+            />
+            <span className="text-white text-xl font-semibold">{likes}</span>
+          </button>
+        </div>
+      </div>
       
       {/* Content - positioned to overlap the fading hero image */}
       <div className="relative z-10 container mx-auto px-4 -mt-32">

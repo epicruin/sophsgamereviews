@@ -287,17 +287,20 @@ export type Database = {
       likes: {
         Row: {
           id: string
-          review_id: string
+          review_id?: string
+          article_id?: string
           created_at: string
         }
         Insert: {
           id?: string
-          review_id: string
+          review_id?: string
+          article_id?: string
           created_at?: string
         }
         Update: {
           id?: string
           review_id?: string
+          article_id?: string
           created_at?: string
         }
         Relationships: [
@@ -306,6 +309,13 @@ export type Database = {
             columns: ["review_id"]
             isOneToOne: false
             referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
             referencedColumns: ["id"]
           }
         ]

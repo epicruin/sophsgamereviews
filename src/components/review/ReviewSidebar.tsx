@@ -129,31 +129,6 @@ export const ReviewSidebar = ({ review }: ReviewSidebarProps) => {
         </Card>
       )}
       
-      {/* Quick Actions */}
-      <Card className="p-6 mb-8 bg-card/95 backdrop-blur-md">
-        <h3 className="text-xl font-semibold mb-6 flex items-center justify-center gap-2 gradient-text">
-          <MessageCircle className="w-5 h-5" />
-          Social
-        </h3>
-        <div className="flex justify-between items-center">
-          <button
-            onClick={handleLike}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <Heart 
-              className={cn(
-                "w-5 h-5 transition-all",
-                hasLiked ? "text-rose-500 fill-rose-500" : "text-rose-500"
-              )}
-            />
-            <span>{likes} likes</span>
-          </button>
-          <button className="p-2 hover:bg-accent rounded-full">
-            <Share2 className="w-5 h-5" />
-          </button>
-        </div>
-      </Card>
-
       {/* YouTube Trailer */}
       {review.youtubeTrailerUrl && (
         <Card className="p-6 mb-8 bg-card/95 backdrop-blur-md">
