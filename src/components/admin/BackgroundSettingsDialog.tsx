@@ -177,7 +177,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .upsert({ 
           key: 'homepage_background',
           value: JSON.stringify({ background: homepageBackground }),
-          description: 'Background type for the homepage: "aurora" or other valid background types',
+          description: 'Background type for the homepage: Animated or static background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         }, {
@@ -190,7 +190,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .upsert({ 
           key: 'modal_background',
           value: JSON.stringify({ background: modalBackground }),
-          description: 'Background type for modals and dialogs: "aurora" or other valid background types',
+          description: 'Background type for modals and dialogs: Static backgrounds only',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         }, {
@@ -203,7 +203,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .upsert({ 
           key: 'review_background',
           value: JSON.stringify({ background: reviewBackground }),
-          description: 'Background type for single review pages: "aurora" or other valid background types',
+          description: 'Background type for single review pages: Animated or static background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         }, {
@@ -216,7 +216,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .upsert({ 
           key: 'article_background',
           value: JSON.stringify({ background: articleBackground }),
-          description: 'Background type for single article pages: "aurora" or other valid background types',
+          description: 'Background type for single article pages: Animated or static background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         }, {
@@ -229,7 +229,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .upsert({ 
           key: 'author_background',
           value: JSON.stringify({ background: authorBackground }),
-          description: 'Background type for author profile pages: "aurora" or other valid background types',
+          description: 'Background type for author profile pages: Animated or static background types',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         }, {
@@ -242,7 +242,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .upsert({ 
           key: 'gamewheel_background',
           value: JSON.stringify({ background: gameWheelBackground }),
-          description: 'Background type for game wheel dialog: static backgrounds only',
+          description: 'Background type for game wheel dialog: Static backgrounds only',
           updated_at: new Date().toISOString(),
           updated_by: (await supabase.auth.getUser()).data.user?.id
         }, {
