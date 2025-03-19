@@ -7,6 +7,7 @@ import { Clock, User, BookOpen, ArrowLeft, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { StaticStarsBackground } from "@/components/home/StaticStarsBackground";
 import { AuroraBackground } from "@/components/home/AuroraBackground";
+import { AuroraBackgroundBlue } from "@/components/home/AuroraBackgroundBlue";
 import { ShootingStarsBackground } from "@/components/home/ShootingStarsBackground";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +19,8 @@ import { motion } from "framer-motion";
 import { MediumCard } from "@/components/cards/MediumCard";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useBackgroundSettings } from "@/hooks/useBackgroundSettings";
+import { StaticBackground } from "@/components/home/StaticBackground";
 
 interface ArticleData {
   id: string;
@@ -76,6 +79,7 @@ const SingleArticle = () => {
   const [likes, setLikes] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { articleBackground } = useBackgroundSettings();
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = '';
@@ -345,31 +349,20 @@ const SingleArticle = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative">
+      <div className="min-h-screen flex items-center justify-center">
         <StaticStarsBackground />
-        <AuroraBackground />
         <ShootingStarsBackground />
-        <p className="text-muted-foreground relative z-10">Loading article...</p>
+        <p className="text-muted-foreground relative z-10">Loading...</p>
       </div>
     );
   }
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
+      <div className="min-h-screen flex items-center justify-center">
         <StaticStarsBackground />
-        <AuroraBackground />
         <ShootingStarsBackground />
-        <div className="relative z-10">
-          <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
-          <p className="text-muted-foreground mb-6">{error || "The article you're looking for doesn't exist."}</p>
-          <Button asChild>
-            <Link to="/articles">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Articles
-            </Link>
-          </Button>
-        </div>
+        <p className="text-muted-foreground relative z-10">Article not found</p>
       </div>
     );
   }
@@ -377,7 +370,13 @@ const SingleArticle = () => {
   return (
     <div className="min-h-screen relative">
       <StaticStarsBackground />
-      <AuroraBackground />
+      {articleBackground === undefined ? null : articleBackground === 'aurora' ? (
+        <AuroraBackground />
+      ) : articleBackground === 'auroraBlue' ? (
+        <AuroraBackgroundBlue />
+      ) : (
+        <StaticBackground color={articleBackground} />
+      )}
       <ShootingStarsBackground />
       
       {/* Full width hero header with image */}

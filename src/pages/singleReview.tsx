@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StaticStarsBackground } from "@/components/home/StaticStarsBackground";
 import { AuroraBackground } from "@/components/home/AuroraBackground";
+import { AuroraBackgroundBlue } from "@/components/home/AuroraBackgroundBlue";
 import { ShootingStarsBackground } from "@/components/home/ShootingStarsBackground";
 import { Link } from "react-router-dom";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -23,6 +24,8 @@ import { MediumCard } from "@/components/cards/MediumCard";
 import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useBackgroundSettings } from "@/hooks/useBackgroundSettings";
+import { StaticBackground } from "@/components/home/StaticBackground";
 
 // Type for latest reviews which only includes fields needed for MediumCard
 interface LatestReview {
@@ -63,6 +66,7 @@ const SingleReview = () => {
   const [likes, setLikes] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { reviewBackground } = useBackgroundSettings();
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = '';
@@ -444,9 +448,8 @@ const SingleReview = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative">
+      <div className="min-h-screen flex items-center justify-center">
         <StaticStarsBackground />
-        <AuroraBackground />
         <ShootingStarsBackground />
         <p className="text-muted-foreground relative z-10">Loading...</p>
       </div>
@@ -460,7 +463,13 @@ const SingleReview = () => {
   return (
     <div className="min-h-screen relative">
       <StaticStarsBackground />
-      <AuroraBackground />
+      {reviewBackground === undefined ? null : reviewBackground === 'aurora' ? (
+        <AuroraBackground />
+      ) : reviewBackground === 'auroraBlue' ? (
+        <AuroraBackgroundBlue />
+      ) : (
+        <StaticBackground color={reviewBackground} />
+      )}
       <ShootingStarsBackground />
       
       {/* Main image with fade effect */}

@@ -28,6 +28,8 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
   const [open, setOpen] = useState(false);
   const [homepageBackground, setHomepageBackground] = useState<string>("aurora");
   const [modalBackground, setModalBackground] = useState<string>("auroraBlue");
+  const [reviewBackground, setReviewBackground] = useState<string>("aurora");
+  const [articleBackground, setArticleBackground] = useState<string>("auroraBlue");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,31 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       
       if (modalSetting) {
         setModalBackground(modalSetting.value);
+      }
+
+      // Load review and article backgrounds from localStorage
+      try {
+        const storedReviewBackground = localStorage.getItem('sophsreviews_review_background');
+        const storedArticleBackground = localStorage.getItem('sophsreviews_article_background');
+        
+        if (storedReviewBackground) {
+          setReviewBackground(storedReviewBackground);
+        } else {
+          // Default to homepage background
+          setReviewBackground(homepageSetting?.value || 'aurora');
+        }
+        
+        if (storedArticleBackground) {
+          setArticleBackground(storedArticleBackground);
+        } else {
+          // Default to modal background
+          setArticleBackground(modalSetting?.value || 'auroraBlue');
+        }
+      } catch (localStorageError) {
+        console.warn('Error reading from localStorage:', localStorageError);
+        // Set defaults if localStorage fails
+        setReviewBackground(homepageSetting?.value || 'aurora');
+        setArticleBackground(modalSetting?.value || 'auroraBlue');
       }
 
       if (homepageError || modalError) {
@@ -113,6 +140,15 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           updated_by: (await supabase.auth.getUser()).data.user?.id
         })
         .eq('key', 'modal_background');
+
+      // Save review and article backgrounds to localStorage
+      try {
+        localStorage.setItem('sophsreviews_review_background', reviewBackground);
+        localStorage.setItem('sophsreviews_article_background', articleBackground);
+      } catch (localStorageError) {
+        console.warn('Error writing to localStorage:', localStorageError);
+        toast.warning("Could not save review and article background preferences");
+      }
 
       if (homepageError || modalError) {
         console.error("Error saving settings:", homepageError || modalError);
@@ -207,6 +243,58 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
               <SelectContent>
                 <SelectItem value="aurora">Colour: Pink (static)</SelectItem>
                 <SelectItem value="auroraBlue">Colour: Blue (static)</SelectItem>
+                <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
+                <SelectItem value="peach">Colour: Peach (static)</SelectItem>
+                <SelectItem value="mint">Colour: Mint (static)</SelectItem>
+                <SelectItem value="lilac">Colour: Lilac (static)</SelectItem>
+                <SelectItem value="rosePetal">Colour: Rose Petal (static)</SelectItem>
+                <SelectItem value="babyBlue">Colour: Baby Blue (static)</SelectItem>
+                <SelectItem value="coral">Colour: Coral (static)</SelectItem>
+                <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="reviewBackground">Review Page Background</Label>
+            <Select 
+              value={reviewBackground} 
+              onValueChange={setReviewBackground}
+            >
+              <SelectTrigger id="reviewBackground">
+                <SelectValue placeholder="Select background" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
+                <SelectItem value="auroraBlue">Aurora (Blue) (animated)</SelectItem>
+                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
+                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
+                <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
+                <SelectItem value="peach">Colour: Peach (static)</SelectItem>
+                <SelectItem value="mint">Colour: Mint (static)</SelectItem>
+                <SelectItem value="lilac">Colour: Lilac (static)</SelectItem>
+                <SelectItem value="rosePetal">Colour: Rose Petal (static)</SelectItem>
+                <SelectItem value="babyBlue">Colour: Baby Blue (static)</SelectItem>
+                <SelectItem value="coral">Colour: Coral (static)</SelectItem>
+                <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="articleBackground">Article Page Background</Label>
+            <Select 
+              value={articleBackground} 
+              onValueChange={setArticleBackground}
+            >
+              <SelectTrigger id="articleBackground">
+                <SelectValue placeholder="Select background" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
+                <SelectItem value="auroraBlue">Aurora (Blue) (animated)</SelectItem>
+                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
+                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
                 <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
                 <SelectItem value="peach">Colour: Peach (static)</SelectItem>
                 <SelectItem value="mint">Colour: Mint (static)</SelectItem>
