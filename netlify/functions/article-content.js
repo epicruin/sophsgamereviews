@@ -102,7 +102,23 @@ exports.handler = async function(event, context) {
         "summary": "Your SEO-optimized summary that creates intense curiosity and promises value"
       }`,
       
-      imageQuery: `Create a search query to find a compelling header image for an article titled "${title}" about gaming. The query should be specific enough to find relevant images but broad enough to return good results.`,
+      imageQuery: `Create a concise 2-3 word search term to find a header image for "${title}". Focus on the main subject or visual element.
+
+      RULES:
+      - Maximum 3 words
+      - No articles (a, an, the)
+      - No filler words
+      - Focus on visual elements
+      
+      Examples:
+      For "Why Elden Ring's Difficulty Sparked Debate":
+      → "Elden Ring boss"
+      
+      For "The Hidden Psychology Behind Roguelike Addiction":
+      → "roguelike gaming setup"
+      
+      For "What Starfield's Launch Reveals About Modern Gaming":
+      → "Starfield exploration"`,
       
       tldr: `Write a TL;DR (Too Long; Didn't Read) summary for an article about ${title}. This should be a concise 1-2 sentence takeaway that captures the essence of what would be in a full article about this topic.`,
       
@@ -339,7 +355,35 @@ exports.handler = async function(event, context) {
         };
       }
       
-      // Use OpenAI for the other sections (imageQuery and tldr)
+      // Use Perplexity only for imageQuery, OpenAI for everything else
+      if (section === 'imageQuery') {
+        console.log(`Using Perplexity API for image search query generation`);
+        const completion = await perplexity.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an image search specialist. Return ONLY 2-3 words that would make a good image search term. No explanations, just the words."
+            },
+            {
+              role: "user",
+              content: prompts[section]
+            }
+          ],
+          model: "sonar-pro",
+          temperature: 0.3,
+          max_tokens: 50
+        });
+        
+        const response = completion.choices[0].message.content.trim();
+        console.log(`Generated image search query: "${response}"`);
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [section]: response })
+        };
+      }
+
+      // Use OpenAI for all other sections
       console.log(`Using OpenAI API for ${section}`);
       const completion = await openai.chat.completions.create({
         messages: [
