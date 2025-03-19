@@ -60,12 +60,6 @@
   status = 200
   force = true
 
-[[redirects]]
-  from = "/api/image-search"
-  to = "/.netlify/functions/image-search"
-  status = 200
-  force = true
-
 # Handle the absolute URL versions as shown in the minified code
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/game-title"
@@ -100,12 +94,6 @@
 [[redirects]]
   from = "https://sophsgamereviews.netlify.app/api/article-content"
   to = "/.netlify/functions/article-content"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "https://sophsgamereviews.netlify.app/api/image-search"
-  to = "/.netlify/functions/image-search"
   status = 200
   force = true
 
