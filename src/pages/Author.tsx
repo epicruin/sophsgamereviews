@@ -354,29 +354,32 @@ const Author = () => {
                         />
                       </div>
                       <CarouselContent>
-                        <CarouselItem>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
-                            {authorArticles.slice(0, Math.min(authorArticles.length, 9)).map((article, index) => (
-                              <div key={article.id} className="w-full">
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.95 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                                >
-                                  <ArticleLargeCard
-                                    id={article.id}
-                                    title={article.title}
-                                    image={article.image}
-                                    imagePosition={article.imagePosition}
-                                    excerpt={article.summary}
-                                    author={article.author}
-                                    likes={article.likes}
-                                  />
-                                </motion.div>
-                              </div>
-                            ))}
-                          </div>
-                        </CarouselItem>
+                        {/* Chunk articles into groups of 9 (3x3 grid) */}
+                        {Array.from({ length: Math.ceil(authorArticles.length / 9) }).map((_, chunkIndex) => (
+                          <CarouselItem key={chunkIndex}>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+                              {authorArticles.slice(chunkIndex * 9, (chunkIndex + 1) * 9).map((article, index) => (
+                                <div key={article.id} className="w-full">
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                                  >
+                                    <ArticleLargeCard
+                                      id={article.id}
+                                      title={article.title}
+                                      image={article.image}
+                                      imagePosition={article.imagePosition}
+                                      excerpt={article.summary}
+                                      author={article.author}
+                                      likes={article.likes}
+                                    />
+                                  </motion.div>
+                                </div>
+                              ))}
+                            </div>
+                          </CarouselItem>
+                        ))}
                       </CarouselContent>
                     </Carousel>
                     {/* Add mobile dots at the bottom */}
