@@ -134,6 +134,12 @@ const Index = () => {
   // Add arrow key navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // If the game is playing, don't allow down arrow navigation
+      if (isGamePlaying && e.key === 'ArrowDown') {
+        e.preventDefault();
+        return;
+      }
+      
       // Get hero section height to know where to scroll
       const heroSection = document.getElementById('hero-section');
       if (!heroSection) return;
@@ -167,9 +173,18 @@ const Index = () => {
           });
           e.preventDefault();
         }
+        // Disable down key when at latest articles section
+        else if (currentScroll >= articlesSectionTop - (viewportHeight / 2)) {
+          e.preventDefault();
+        }
       } else if (e.key === 'ArrowUp') {
+        // If we're at hero section (near the top), don't allow further up navigation
+        if (currentScroll < viewportHeight / 2) {
+          e.preventDefault();
+          return;
+        }
         // If we're at articles section, scroll to sections
-        if (currentScroll >= articlesSectionTop - 100) {
+        else if (currentScroll >= articlesSectionTop - 100) {
           window.scrollTo({
             top: viewportHeight,
             behavior: 'smooth'
@@ -192,7 +207,7 @@ const Index = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [isGamePlaying]);
 
   useEffect(() => {
     const restoreScroll = () => window.scrollTo(0, 0);
