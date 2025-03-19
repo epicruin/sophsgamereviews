@@ -10,7 +10,6 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleFormProps, ArticleFormData, initialFormData } from "./types";
 import { ArticleAIGenerateButton } from "@/components/ui/article-ai-generate-button";
-import { ImageSearchButton } from "@/components/ui/image-search-button";
 
 export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   // Format datetime for input element (needs YYYY-MM-DDThh:mm format)
@@ -172,14 +171,6 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
       <Card className="p-6">
         <div className="relative flex justify-end items-center mb-4">
           <h3 className="absolute left-0 right-0 text-lg font-semibold text-center">Featured Image</h3>
-          <div className="z-10">
-            <ImageSearchButton
-              articleTitle={formData.title}
-              onImageSelected={(imageUrl) => {
-                handleFormUpdate("image", imageUrl);
-              }}
-            />
-          </div>
         </div>
         <div className="space-y-4">
           <div>
