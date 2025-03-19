@@ -427,7 +427,7 @@ const Index = () => {
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <motion.button 
-              className="fixed bottom-6 left-6 z-50 rounded-full p-3 bg-gradient-to-br from-rose-400/80 via-pink-400/80 to-rose-400/80 text-white border border-rose-300/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+              className="fixed bottom-6 left-6 z-50 rounded-full p-3 bg-gradient-to-br from-rose-400/80 via-pink-400/80 to-rose-400/80 text-white border border-rose-300/50 shadow-[0_0_15px_rgba(244,63,94,0.3)] hidden xl:block"
               aria-label="Navigation Controls Info"
               initial={{ scale: 1 }}
               whileHover={{ 
@@ -455,7 +455,7 @@ const Index = () => {
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <motion.button 
-              className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-gradient-to-br from-rose-400/80 via-pink-400/80 to-rose-400/80 text-white border border-rose-300/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+              className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-gradient-to-br from-rose-400/80 via-pink-400/80 to-rose-400/80 text-white border border-rose-300/50 shadow-[0_0_15px_rgba(244,63,94,0.3)] hidden xl:block"
               aria-label="Space Invader"
               initial={{ scale: 1 }}
               whileHover={{ 
