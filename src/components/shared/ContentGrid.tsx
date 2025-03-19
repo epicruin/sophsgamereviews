@@ -451,6 +451,14 @@ export const ContentGrid = ({
               loop: true,
               skipSnaps: false,
               dragFree: false,
+              containScroll: "trimSnaps",
+              breakpoints: {
+                '(min-width: 1280px)': { slidesToScroll: 5 },
+                '(min-width: 1024px) and (max-width: 1279px)': { slidesToScroll: 4 },
+                '(min-width: 768px) and (max-width: 1023px)': { slidesToScroll: 3 },
+                '(min-width: 640px) and (max-width: 767px)': { slidesToScroll: 2 },
+                '(max-width: 639px)': { slidesToScroll: 1 }
+              }
             }}
             className="w-full"
           >
@@ -485,6 +493,11 @@ export const ContentGrid = ({
               loop: true,
               skipSnaps: false,
               dragFree: false,
+              containScroll: "trimSnaps",
+              breakpoints: {
+                '(min-width: 768px)': { slidesToScroll: 1 },
+                '(max-width: 767px)': { slidesToScroll: 1 }
+              }
             }}
             className="w-full"
           >

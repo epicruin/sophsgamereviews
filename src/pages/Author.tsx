@@ -21,7 +21,8 @@ import {
   CarouselContent, 
   CarouselItem, 
   CarouselPrevious, 
-  CarouselNext 
+  CarouselNext,
+  CarouselApi
 } from "@/components/ui/carousel";
 import { ArticleLargeCard } from "@/components/cards/ArticleLargeCard";
 import { cn } from "@/lib/utils";
@@ -55,11 +56,48 @@ const Author = () => {
   const [authorArticles, setAuthorArticles] = useState<Article[]>([]);
   const [isLoadingArticles, setIsLoadingArticles] = useState(true);
   const [activeSection, setActiveSection] = useState<'reviews' | 'articles'>('reviews');
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchAuthor();
   }, [username]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const onSelect = () => {
+      setCurrent(carouselApi.selectedScrollSnap());
+    };
+
+    const onResize = () => {
+      setCount(carouselApi.scrollSnapList().length);
+    };
+
+    carouselApi.on("select", onSelect);
+    carouselApi.on("reInit", onSelect);
+    carouselApi.on("reInit", onResize);
+    
+    onSelect();
+    onResize();
+
+    return () => {
+      carouselApi.off("select", onSelect);
+      carouselApi.off("reInit", onSelect);
+      carouselApi.off("reInit", onResize);
+    };
+  }, [carouselApi]);
 
   const fetchAuthor = async () => {
     try {
@@ -161,6 +199,26 @@ const Author = () => {
       setIsLoadingArticles(false);
     }
   };
+
+  // Determine article display count based on screen width
+  const getArticlesPerPage = () => {
+    if (windowWidth >= 1024) return 9; // lg and above: 9 articles
+    if (windowWidth >= 768) return 6;  // md: 6 articles
+    if (windowWidth >= 640) return 3;  // sm (640-768px): 3 articles
+    return 2;                          // xs (<640px): 2 articles
+  };
+
+  // Split articles into chunks for the carousel based on screen size
+  const getArticleSlides = () => {
+    const articlesPerPage = getArticlesPerPage();
+    const slidesCount = Math.ceil(authorArticles.length / articlesPerPage);
+    return Array.from({ length: slidesCount }).map((_, slideIndex) => ({
+      slideIndex,
+      items: authorArticles.slice(slideIndex * articlesPerPage, (slideIndex + 1) * articlesPerPage)
+    }));
+  };
+
+  const articleSlides = getArticleSlides();
 
   if (isLoading) {
     return (
@@ -340,8 +398,10 @@ const Author = () => {
                         loop: true,
                         skipSnaps: false,
                         dragFree: false,
+                        containScroll: "trimSnaps"
                       }}
                       className="w-full"
+                      setApi={setCarouselApi}
                     >
                       <div className="flex items-center justify-end gap-2 mb-4">
                         <CarouselPrevious 
@@ -354,29 +414,175 @@ const Author = () => {
                         />
                       </div>
                       <CarouselContent>
-                        {/* Chunk articles into groups of 9 (3x3 grid) */}
-                        {Array.from({ length: Math.ceil(authorArticles.length / 9) }).map((_, chunkIndex) => (
-                          <CarouselItem key={chunkIndex}>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
-                              {authorArticles.slice(chunkIndex * 9, (chunkIndex + 1) * 9).map((article, index) => (
-                                <div key={article.id} className="w-full">
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                                  >
-                                    <ArticleLargeCard
-                                      id={article.id}
-                                      title={article.title}
-                                      image={article.image}
-                                      imagePosition={article.imagePosition}
-                                      excerpt={article.summary}
-                                      author={article.author}
-                                      likes={article.likes}
-                                    />
-                                  </motion.div>
-                                </div>
-                              ))}
+                        {articleSlides.map((slide) => (
+                          <CarouselItem key={slide.slideIndex}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-8">
+                              {windowWidth < 640 ? (
+                                // For small screens (<640px) - 2 articles
+                                slide.items.slice(0, 2).map((article, index) => (
+                                  <div key={article.id} className="w-full col-span-1">
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                                    >
+                                      <ArticleLargeCard
+                                        id={article.id}
+                                        title={article.title}
+                                        image={article.image}
+                                        imagePosition={article.imagePosition}
+                                        excerpt={article.summary}
+                                        author={article.author}
+                                        likes={article.likes}
+                                      />
+                                    </motion.div>
+                                  </div>
+                                ))
+                              ) : windowWidth < 768 ? (
+                                // For medium screens (640-768px) - 3 articles
+                                slide.items.slice(0, 3).map((article, index) => (
+                                  <div key={article.id} className="w-full col-span-1">
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                                    >
+                                      <ArticleLargeCard
+                                        id={article.id}
+                                        title={article.title}
+                                        image={article.image}
+                                        imagePosition={article.imagePosition}
+                                        excerpt={article.summary}
+                                        author={article.author}
+                                        likes={article.likes}
+                                      />
+                                    </motion.div>
+                                  </div>
+                                ))
+                              ) : windowWidth < 1024 ? (
+                                // For large screens (768-1024px) - 6 articles (2 rows of 3)
+                                <>
+                                  {/* First row of 3 */}
+                                  {slide.items.slice(0, 3).map((article, index) => (
+                                    <div key={article.id} className="w-full col-span-1">
+                                      <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.6, delay: index * 0.1 }}
+                                      >
+                                        <ArticleLargeCard
+                                          id={article.id}
+                                          title={article.title}
+                                          image={article.image}
+                                          imagePosition={article.imagePosition}
+                                          excerpt={article.summary}
+                                          author={article.author}
+                                          likes={article.likes}
+                                        />
+                                      </motion.div>
+                                    </div>
+                                  ))}
+                                  
+                                  {/* Second row of 3 if there are more */}
+                                  {slide.items.length > 3 && (
+                                    <>
+                                      {slide.items.slice(3, 6).map((article, index) => (
+                                        <div key={article.id} className="w-full col-span-1 mt-3">
+                                          <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.6, delay: index * 0.1 + 0.3 }}
+                                          >
+                                            <ArticleLargeCard
+                                              id={article.id}
+                                              title={article.title}
+                                              image={article.image}
+                                              imagePosition={article.imagePosition}
+                                              excerpt={article.summary}
+                                              author={article.author}
+                                              likes={article.likes}
+                                            />
+                                          </motion.div>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                // For extra large screens (1024px+) - 9 articles (3 rows of 3)
+                                <>
+                                  {/* First row of 3 */}
+                                  {slide.items.slice(0, 3).map((article, index) => (
+                                    <div key={article.id} className="w-full col-span-1">
+                                      <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.6, delay: index * 0.1 }}
+                                      >
+                                        <ArticleLargeCard
+                                          id={article.id}
+                                          title={article.title}
+                                          image={article.image}
+                                          imagePosition={article.imagePosition}
+                                          excerpt={article.summary}
+                                          author={article.author}
+                                          likes={article.likes}
+                                        />
+                                      </motion.div>
+                                    </div>
+                                  ))}
+                                  
+                                  {/* Second row of 3 if there are more */}
+                                  {slide.items.length > 3 && (
+                                    <>
+                                      {slide.items.slice(3, 6).map((article, index) => (
+                                        <div key={article.id} className="w-full col-span-1 mt-3">
+                                          <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.6, delay: index * 0.1 + 0.3 }}
+                                          >
+                                            <ArticleLargeCard
+                                              id={article.id}
+                                              title={article.title}
+                                              image={article.image}
+                                              imagePosition={article.imagePosition}
+                                              excerpt={article.summary}
+                                              author={article.author}
+                                              likes={article.likes}
+                                            />
+                                          </motion.div>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
+                                  
+                                  {/* Third row of 3 if there are more */}
+                                  {slide.items.length > 6 && (
+                                    <>
+                                      {slide.items.slice(6, 9).map((article, index) => (
+                                        <div key={article.id} className="w-full col-span-1 mt-3">
+                                          <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.6, delay: index * 0.1 + 0.6 }}
+                                          >
+                                            <ArticleLargeCard
+                                              id={article.id}
+                                              title={article.title}
+                                              image={article.image}
+                                              imagePosition={article.imagePosition}
+                                              excerpt={article.summary}
+                                              author={article.author}
+                                              likes={article.likes}
+                                            />
+                                          </motion.div>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </CarouselItem>
                         ))}
