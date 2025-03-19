@@ -173,7 +173,7 @@ exports.handler = async function(event, context) {
           
           // Add retry logic with exponential backoff
           let retryCount = 0;
-          const maxRetries = 2;
+          const maxRetries = 3;
           
           while (retryCount <= maxRetries) {
             try {
