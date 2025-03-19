@@ -32,6 +32,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
   const [reviewBackground, setReviewBackground] = useState<string | null>(null);
   const [articleBackground, setArticleBackground] = useState<string | null>(null);
   const [authorBackground, setAuthorBackground] = useState<string | null>(null);
+  const [gameWheelBackground, setGameWheelBackground] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -84,10 +85,17 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .select('value')
         .eq('key', 'author_background')
         .single();
+        
+      const { data: gameWheelSetting, error: gameWheelError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'gamewheel_background')
+        .single();
 
       // Set defaults if no settings exist
       const defaultHomepage = 'aurora';
       const defaultModal = 'auroraBlue';
+      const defaultGameWheel = 'staticPink';
 
       // Parse and set homepage background
       if (homepageSetting?.value) {
@@ -128,9 +136,17 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       } else {
         setAuthorBackground(defaultHomepage);
       }
+      
+      // Parse and set game wheel background
+      if (gameWheelSetting?.value) {
+        const value = JSON.parse(gameWheelSetting.value);
+        setGameWheelBackground(value.background);
+      } else {
+        setGameWheelBackground(defaultGameWheel);
+      }
 
-      if (homepageError || modalError || reviewError || articleError || authorError) {
-        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError);
+      if (homepageError || modalError || reviewError || articleError || authorError || gameWheelError) {
+        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError || gameWheelError);
         toast.error("Failed to load background settings");
       }
     } catch (error) {
@@ -156,7 +172,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
       }
 
       // Update homepage background
-      const { error: homepageError } = await supabase
+      const { data: homepageData, error: homepageError } = await supabase
         .from('site_settings')
         .upsert({ 
           key: 'homepage_background',
@@ -169,7 +185,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         });
 
       // Update modal background
-      const { error: modalError } = await supabase
+      const { data: modalData, error: modalError } = await supabase
         .from('site_settings')
         .upsert({ 
           key: 'modal_background',
@@ -182,7 +198,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         });
 
       // Update review background
-      const { error: reviewError } = await supabase
+      const { data: reviewData, error: reviewError } = await supabase
         .from('site_settings')
         .upsert({ 
           key: 'review_background',
@@ -195,7 +211,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         });
 
       // Update article background
-      const { error: articleError } = await supabase
+      const { data: articleData, error: articleError } = await supabase
         .from('site_settings')
         .upsert({ 
           key: 'article_background',
@@ -208,7 +224,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         });
 
       // Update author background
-      const { error: authorError } = await supabase
+      const { data: authorData, error: authorError } = await supabase
         .from('site_settings')
         .upsert({ 
           key: 'author_background',
@@ -219,6 +235,36 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         }, {
           onConflict: 'key'
         });
+        
+      // Update game wheel background
+      const { data: gameWheelData, error: gameWheelError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'gamewheel_background',
+          value: JSON.stringify({ background: gameWheelBackground }),
+          description: 'Background type for game wheel dialog: static backgrounds only',
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        }, {
+          onConflict: 'key'
+        });
+
+      // Log responses for debugging
+      console.log('Upsert responses:', {
+        homepage: { data: homepageData, error: homepageError },
+        modal: { data: modalData, error: modalError },
+        review: { data: reviewData, error: reviewError },
+        article: { data: articleData, error: articleError },
+        author: { data: authorData, error: authorError },
+        gameWheel: { data: gameWheelData, error: gameWheelError }
+      });
+
+      if (homepageError || modalError || reviewError || articleError || authorError || gameWheelError) {
+        const error = homepageError || modalError || reviewError || articleError || authorError || gameWheelError;
+        console.error("Error saving settings:", error);
+        toast.error(`Failed to save background settings: ${error.message}`);
+        return;
+      }
 
       // Save to localStorage as backup
       try {
@@ -227,20 +273,16 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         localStorage.setItem('sophsreviews_review_background', reviewBackground || '');
         localStorage.setItem('sophsreviews_article_background', articleBackground || '');
         localStorage.setItem('sophsreviews_author_background', authorBackground || '');
+        localStorage.setItem('sophsreviews_gamewheel_background', gameWheelBackground || '');
       } catch (localStorageError) {
         console.warn('Error writing to localStorage:', localStorageError);
       }
 
-      if (homepageError || modalError || reviewError || articleError || authorError) {
-        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError || authorError);
-        toast.error("Failed to save background settings");
-      } else {
-        toast.success("Background settings saved successfully");
-        setOpen(false);
-      }
+      toast.success("Background settings saved successfully");
+      setOpen(false);
     } catch (error) {
       console.error("Error:", error);
-      toast.error("An unexpected error occurred");
+      toast.error(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -409,6 +451,31 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
               <SelectContent>
                 <SelectItem value="aurora">Aurora (Pink) (animated)</SelectItem>
                 <SelectItem value="auroraBlue">Aurora (Blue) (animated)</SelectItem>
+                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
+                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
+                <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
+                <SelectItem value="peach">Colour: Peach (static)</SelectItem>
+                <SelectItem value="mint">Colour: Mint (static)</SelectItem>
+                <SelectItem value="lilac">Colour: Lilac (static)</SelectItem>
+                <SelectItem value="rosePetal">Colour: Rose Petal (static)</SelectItem>
+                <SelectItem value="babyBlue">Colour: Baby Blue (static)</SelectItem>
+                <SelectItem value="coral">Colour: Coral (static)</SelectItem>
+                <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="gameWheelBackground">Game Wheel Background</Label>
+            <Select 
+              value={gameWheelBackground || undefined}
+              onValueChange={setGameWheelBackground}
+              disabled={isDisabled}
+            >
+              <SelectTrigger id="gameWheelBackground">
+                <SelectValue placeholder={isLoading ? "Loading..." : "Select background"} />
+              </SelectTrigger>
+              <SelectContent>
                 <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
                 <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
                 <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
