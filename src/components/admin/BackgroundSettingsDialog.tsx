@@ -31,6 +31,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
   const [reviewBackground, setReviewBackground] = useState<string>("aurora");
   const [articleBackground, setArticleBackground] = useState<string>("auroraBlue");
   const [authorBackground, setAuthorBackground] = useState<string>("aurora");
+  const [wheelBackground, setWheelBackground] = useState<string>("staticPink");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -83,6 +84,12 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         .eq('key', 'author_background')
         .single();
 
+      const { data: wheelSetting, error: wheelError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'wheel_background')
+        .single();
+
       if (homepageSetting) {
         const value = JSON.parse(homepageSetting.value);
         setHomepageBackground(value.background);
@@ -117,8 +124,16 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         setAuthorBackground(homepageSetting ? JSON.parse(homepageSetting.value).background : 'aurora');
       }
 
-      if (homepageError || modalError || reviewError || articleError || authorError) {
-        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError);
+      if (wheelSetting) {
+        const value = JSON.parse(wheelSetting.value);
+        setWheelBackground(value.background);
+      } else {
+        // Default to a static background for wheel
+        setWheelBackground('staticPink');
+      }
+
+      if (homepageError || modalError || reviewError || articleError || authorError || wheelError) {
+        console.error("Error loading settings:", homepageError || modalError || reviewError || articleError || authorError || wheelError);
         toast.error("Failed to load background settings");
       }
     } catch (error) {
@@ -196,6 +211,17 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
           updated_by: (await supabase.auth.getUser()).data.user?.id
         });
 
+      // Update wheel background
+      const { error: wheelError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'wheel_background',
+          value: JSON.stringify({ background: wheelBackground }),
+          description: 'Background type for the game wheel modal: only static background types',
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        });
+
       // Save to localStorage as backup
       try {
         localStorage.setItem('sophsreviews_homepage_background', homepageBackground);
@@ -203,12 +229,13 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
         localStorage.setItem('sophsreviews_review_background', reviewBackground);
         localStorage.setItem('sophsreviews_article_background', articleBackground);
         localStorage.setItem('sophsreviews_author_background', authorBackground);
+        localStorage.setItem('sophsreviews_wheel_background', wheelBackground);
       } catch (localStorageError) {
         console.warn('Error writing to localStorage:', localStorageError);
       }
 
-      if (homepageError || modalError || reviewError || articleError || authorError) {
-        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError || authorError);
+      if (homepageError || modalError || reviewError || articleError || authorError || wheelError) {
+        console.error("Error saving settings:", homepageError || modalError || reviewError || articleError || authorError || wheelError);
         toast.error("Failed to save background settings");
       } else {
         toast.success("Background settings saved successfully");
@@ -310,6 +337,7 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
                 <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">Note: Only static backgrounds are available for modals.</p>
           </div>
           
           <div className="space-y-2">
@@ -388,6 +416,31 @@ const BackgroundSettingsDialog = ({ trigger }: BackgroundSettingsDialogProps) =>
                 <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="wheelBackground">Game Wheel Background</Label>
+            <Select 
+              value={wheelBackground} 
+              onValueChange={setWheelBackground}
+            >
+              <SelectTrigger id="wheelBackground">
+                <SelectValue placeholder="Select background" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="staticPink">Colour: Pink (static)</SelectItem>
+                <SelectItem value="staticBlue">Colour: Blue (static)</SelectItem>
+                <SelectItem value="lavender">Colour: Lavender (static)</SelectItem>
+                <SelectItem value="peach">Colour: Peach (static)</SelectItem>
+                <SelectItem value="mint">Colour: Mint (static)</SelectItem>
+                <SelectItem value="lilac">Colour: Lilac (static)</SelectItem>
+                <SelectItem value="rosePetal">Colour: Rose Petal (static)</SelectItem>
+                <SelectItem value="babyBlue">Colour: Baby Blue (static)</SelectItem>
+                <SelectItem value="coral">Colour: Coral (static)</SelectItem>
+                <SelectItem value="periwinkle">Colour: Periwinkle (static)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Note: Only static backgrounds are available for the game wheel.</p>
           </div>
         </div>
         
