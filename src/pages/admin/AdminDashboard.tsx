@@ -641,6 +641,19 @@ const AdminDashboard = () => {
     if (!confirmed) return;
 
     try {
+      // First delete all likes associated with this article
+      const { error: likesError } = await supabase
+        .from('likes')
+        .delete()
+        .eq('article_id', id);
+        
+      if (likesError) {
+        console.error("Error deleting article likes:", likesError);
+        toast.error(`Failed to delete article likes: ${likesError.message}`);
+        return;
+      }
+      
+      // Now delete the article
       const { error } = await supabase
         .from('articles')
         .delete()
