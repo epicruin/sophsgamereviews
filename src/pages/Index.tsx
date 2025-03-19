@@ -42,10 +42,20 @@ import {
   Puzzle,
   Dice5,
   Ghost,
-  Users
+  Users,
+  Settings2,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react"; // Updated icons import
 import { useBackgroundSettings } from "@/hooks/useBackgroundSettings";
 import { StaticBackground } from "@/components/home/StaticBackground";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 type HomepageSection =
   | "featured"
@@ -411,6 +421,66 @@ const Index = () => {
       <section id="latest-articles" className="min-h-[90vh] pb-16">
         <LatestArticlesSection />
       </section>
+
+      {/* Floating Controls Info Icon - Left */}
+      <TooltipProvider>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <motion.button 
+              className="fixed bottom-6 left-6 z-50 rounded-full p-3 bg-gradient-to-br from-rose-400/80 via-pink-400/80 to-rose-400/80 text-white border border-rose-300/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+              aria-label="Navigation Controls Info"
+              initial={{ scale: 1 }}
+              whileHover={{ 
+                scale: 1.1,
+                background: "linear-gradient(to bottom right, rgba(225,29,72,0.9), rgba(244,63,94,0.9), rgba(225,29,72,0.9))",
+                boxShadow: "0 0 20px rgba(244,63,94,0.4)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Settings2 className="w-5 h-5" />
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent 
+            side="right" 
+            className="bg-slate-900/95 backdrop-blur-sm border-slate-800 text-white text-sm px-3 py-1.5"
+          >
+            Use ↑↓ arrows to navigate sections
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {/* Floating Space Invader - Right */}
+      <TooltipProvider>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <motion.button 
+              className="fixed bottom-6 right-6 z-50 rounded-full p-3 bg-gradient-to-br from-rose-400/80 via-pink-400/80 to-rose-400/80 text-white border border-rose-300/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+              aria-label="Space Invader"
+              initial={{ scale: 1 }}
+              whileHover={{ 
+                scale: 1.1,
+                background: "linear-gradient(to bottom right, rgba(225,29,72,0.9), rgba(244,63,94,0.9), rgba(225,29,72,0.9))",
+                boxShadow: "0 0 20px rgba(244,63,94,0.4)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+            >
+              <img 
+                src="/spaceinvaders-enemy-emerald.svg" 
+                alt="Space Invader" 
+                className="w-5 h-5"
+              />
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent 
+            side="left" 
+            className="bg-slate-900/95 backdrop-blur-sm border-slate-800 text-white text-sm px-3 py-1.5"
+          >
+            GAME CONTROLS:   ← → to move   ⎵ to shoot
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };
