@@ -144,25 +144,37 @@ exports.handler = async function(event, context) {
         const sectionPrompts = [
           {
             section: "introduction",
-            prompt: `Write an engaging introduction (2-3 paragraphs) for an article about ${title} for a female gaming audience. Hook the reader with compelling information and set up what the article will discuss. Include relevant gaming context and why this topic matters to female gamers specifically.`
+            prompt: `Write an engaging introduction (2 paragraphs) for an article about ${title} for a female gaming audience. Hook the reader with compelling information and set up what the article will discuss. Include relevant gaming context and why this topic matters to female gamers specifically.`
           },
           {
-            section: "mainPoints",
-            prompt: `Write the main body (3-4 paragraphs) for an article about ${title}. This section should contain the key information, examples, and insights. Include specific gaming references and perspectives that would resonate with female gamers.
+            section: "mainPoints1",
+            prompt: `Write the first part of the main body (2 paragraphs) for an article about ${title}. Focus on the first key points and examples.
             
-            IMPORTANT: This is the second section of an article that has already begun with an introduction. DO NOT start with any introduction or greeting. DO NOT reintroduce the topic. Begin as if continuing seamlessly from the introduction section, with transitional phrasing that connects to the previous content.`
+            IMPORTANT: This is the second section of an article that has already begun. DO NOT start with any introduction or greeting. DO NOT reintroduce the topic. Begin as if continuing seamlessly from the introduction section.`
           },
           {
-            section: "analysis",
-            prompt: `Write an analysis section (2-3 paragraphs) for an article about ${title}. Discuss implications, patterns, or deeper insights about the topic as it relates to gaming and female gamers' experiences.
+            section: "mainPoints2",
+            prompt: `Write the second part of the main body (2 paragraphs) for an article about ${title}. Focus on additional key points and insights.
             
-            IMPORTANT: This is the middle section of an article that has already covered the introduction and main points. DO NOT start with any introduction or greeting. DO NOT reintroduce the topic. Begin as if continuing directly from previous sections about the main points of ${title}, with transitional phrasing that connects to what came before.`
+            IMPORTANT: This is a continuation of an article that has already covered the introduction and first main points. DO NOT start with any introduction. DO NOT reintroduce the topic. Begin as if continuing directly from the previous section.`
+          },
+          {
+            section: "analysis1",
+            prompt: `Write the first analysis section (2 paragraphs) for an article about ${title}. Discuss initial implications and insights about the topic as it relates to gaming and female gamers' experiences.
+            
+            IMPORTANT: This is a continuation of an ongoing article. DO NOT start with any introduction. DO NOT reintroduce the topic. Begin as if continuing from the main points section.`
+          },
+          {
+            section: "analysis2",
+            prompt: `Write the second analysis section (2 paragraphs) for an article about ${title}. Discuss additional patterns or deeper insights about the topic.
+            
+            IMPORTANT: This is a continuation of an ongoing article. DO NOT start with any introduction. DO NOT reintroduce the topic. Begin as if continuing from the previous analysis section.`
           },
           {
             section: "conclusion",
-            prompt: `Write a conclusion (1-2 paragraphs) for an article about ${title}. Summarize key points and end with a thought-provoking statement or call to action that would resonate with female gamers.
+            prompt: `Write a conclusion (2 paragraphs) for an article about ${title}. Summarize key points and end with a thought-provoking statement or call to action that would resonate with female gamers.
             
-            IMPORTANT: This is the final section of an ongoing article. You may begin with a phrase like "In conclusion" or "To wrap things up", but DO NOT reintroduce the topic or summarize the entire article again. End with a memorable closing statement that a female gaming writer might use.`
+            IMPORTANT: This is the final section of an ongoing article. You may begin with a phrase like "In conclusion" or "To wrap things up", but DO NOT reintroduce the topic. End with a memorable closing statement.`
           }
         ];
         
@@ -189,23 +201,23 @@ exports.handler = async function(event, context) {
                     
                     IMPORTANT CONTEXT: This is part of a multi-section article where each section will be combined into a single cohesive piece:
                     - Introduction: Sets up the article and hooks the reader
-                    - Main Points: Continues the article (no introduction, no restatement of topic)
-                    - Analysis: Continues with deeper perspectives (no introduction, no restatement of topic)
-                    - Conclusion: Wraps everything up (may begin with "In conclusion" but no reintroduction)
+                    - Main Points (Part 1): First key points and examples
+                    - Main Points (Part 2): Additional key points
+                    - Analysis (Part 1): Initial implications and insights
+                    - Analysis (Part 2): Additional patterns and deeper insights
+                    - Conclusion: Wraps everything up
                     
-                    Write ONLY your assigned section (${sectionPrompt.section}) in a way that flows naturally when combined with the others. Use consistent voice and tone throughout.
-                    
-                    Example tone (adapt to fit the specific topic):
-                    "The gaming industry's shift toward more diverse representation isn't just a trend—it's a vital evolution that's changing how games are made and who they're made for. As female gamers, we've seen firsthand how this transformation is creating more meaningful and authentic experiences."`
+                    Write ONLY your assigned section (${sectionPrompt.section}) in a way that flows naturally when combined with the others.`
                   },
                   {
                     role: "user",
                     content: sectionPrompt.prompt
                   }
                 ],
-                model: "gpt-4o",
+                model: "gpt-4o-mini",
                 temperature: 0.7,
-                max_tokens: 1200,
+                max_tokens: 800,
+                response_format: { type: "text" },
               });
               
               // If successful, return the content
@@ -229,12 +241,14 @@ exports.handler = async function(event, context) {
           }
         }));
         
-        // Combine all sections into a full article with markdown formatting
+        // Combine all sections into a full article
         const sectionsWithFormatting = [
-          results[0], // Introduction (no header needed)
-          "\n\n" + results[1], // Main Points 
-          "\n\n" + results[2], // Analysis
-          "\n\n" + results[3]  // Conclusion
+          results[0], // Introduction
+          "\n\n" + results[1], // Main Points 1
+          "\n\n" + results[2], // Main Points 2
+          "\n\n" + results[3], // Analysis 1
+          "\n\n" + results[4], // Analysis 2
+          "\n\n" + results[5]  // Conclusion
         ];
         const combinedContent = sectionsWithFormatting.join('');
         console.log(`Full article content generated, total length: ${combinedContent.length}`);
@@ -252,46 +266,49 @@ exports.handler = async function(event, context) {
               messages: [
                 {
                   role: "system",
-                  content: `You are a professional content writer for a female-focused gaming website. You specialize in creating engaging articles about video games, gaming culture, and the gaming industry specifically for female gamers.`
+                  content: `You are a professional content writer for a female-focused gaming website. You specialize in creating engaging articles about video games, gaming culture, and the gaming industry specifically for female gamers. Create a complete article about ${title}.
+                  
+                  Structure your article with these sections:
+                  1. Introduction (hook and context)
+                  2. Main points and examples
+                  3. Analysis and implications
+                  4. Conclusion with call to action
+                  
+                  Keep the article informative but engaging, written specifically for female gamers.`
                 },
                 {
                   role: "user",
-                  content: `Write a complete article about ${title} for a female gaming audience. The article should include:
-                  1. An engaging introduction that hooks the reader
-                  2. Main points with key information and insights about ${title}
-                  3. An analysis with deeper perspectives on the topic
-                  4. A conclusion with a memorable ending
-                  
-                  The article should be written in a consistent, flowing style that reads as a single cohesive piece rather than disjointed sections. Use a conversational but professional tone throughout.`
+                  content: `Write a complete article about ${title}. Structure it to cover the main points, analysis, and end with a strong conclusion. Keep it authentic and engaging, written specifically for female gamers.`
                 }
               ],
-              model: "gpt-4o",
+              model: "gpt-4o-mini",
               temperature: 0.7,
-              max_tokens: 4000,
+              max_tokens: 3000,
+              response_format: { type: "text" },
             });
             
             const fallbackContent = fallbackCompletion.choices[0].message.content;
-            console.log(`Generated fallback article content, length: ${fallbackContent.length}`);
+            console.log(`Generated fallback content, length: ${fallbackContent.length}`);
             
             // Use the fallback content if it's reasonably long (>500 characters)
             if (fallbackContent && fallbackContent.length > 500) {
               return {
                 statusCode: 200,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: fallbackContent.trim() })
+                body: JSON.stringify({ content: fallbackContent })
               };
             }
           } catch (fallbackError) {
-            console.error('Error generating fallback article content:', fallbackError);
+            console.error('Error generating fallback content:', fallbackError);
             // Continue with the original combined content even if it has errors
           }
         }
         
-        // Return the original combined content
+        // Return the original combined content (either if fallback wasn't needed or fallback also failed)
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: combinedContent.trim() })
+          body: JSON.stringify({ content: combinedContent })
         };
       }
       
