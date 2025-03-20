@@ -18,13 +18,6 @@ interface CustomSection {
   icon_name?: string;
 }
 
-// Helper function to check if a section is in localStorage (for undo functionality)
-const isSectionInLocalStorage = (sectionId: string): boolean => {
-  const STORAGE_PREFIX = 'section_assignments_';
-  const key = `${STORAGE_PREFIX}${sectionId}`;
-  return localStorage.getItem(key) !== null;
-};
-
 export const HomepageSections = ({ formData, onUpdate }: HomepageSectionsProps) => {
   const [customSections, setCustomSections] = useState<CustomSection[]>([]);
   const [activeSections, setActiveSections] = useState<string[]>([]);
