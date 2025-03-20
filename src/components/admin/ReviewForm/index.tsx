@@ -95,7 +95,15 @@ export const ReviewForm = ({ initialData }: ReviewFormProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No session found");
 
-      const reviewData = formatReviewData(formData, session.user.id);
+      // Ensure scheduled_for is null when not explicitly set
+      const finalFormData = {...formData};
+      if (finalFormData.scheduled_for === '' || !finalFormData.scheduled_for) {
+        finalFormData.scheduled_for = null;
+      }
+
+      const reviewData = formatReviewData(finalFormData, session.user.id);
+
+      console.log("Submitting review with scheduled_for:", reviewData.scheduled_for);
 
       let review;
       if (initialData) {
