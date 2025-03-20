@@ -140,9 +140,7 @@ export const HomepageSections = ({ formData, onUpdate }: HomepageSectionsProps) 
               // Don't show hidden sections
               if (hiddenSections.has(section.value)) return false;
               
-              // Don't show empty sections unless they're in localStorage (for undo functionality)
-              if (emptySections.has(section.value) && !isSectionInLocalStorage(section.value)) return false;
-              
+              // Show all non-hidden sections, regardless of emptySections or localStorage status
               return true;
             })
             .map(section => (
@@ -171,7 +169,7 @@ export const HomepageSections = ({ formData, onUpdate }: HomepageSectionsProps) 
               </div>
             ))}
           
-          {/* Custom sections */}
+          {/* Custom sections - show all non-hidden custom sections */}
           {customSections
             .filter(section => !hiddenSections.has(section.id))
             .map(section => (
