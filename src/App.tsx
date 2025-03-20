@@ -12,6 +12,7 @@ import EditReview from "@/pages/admin/EditReview";
 import CreateReview from "@/pages/admin/CreateReview";
 import CreateArticle from "@/pages/admin/CreateArticle";
 import EditArticle from "@/pages/admin/EditArticle";
+import NotesPage from "@/pages/admin/NotesPage";
 import Genre from "@/pages/Genre";
 import Author from "@/pages/Author";
 import { GameStateProvider } from "@/components/game/GameState";
@@ -152,6 +153,7 @@ function AppContainer() {
         <Route path="/sections/browse-genres" element={<BrowseGenres />} />
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/notes" element={<NotesPage />} />
         <Route path="/admin/reviews/create" element={<CreateReview />} />
         <Route path="/admin/reviews/:id/edit" element={<EditReview />} />
         <Route path="/admin/articles/create" element={<CreateArticle />} />

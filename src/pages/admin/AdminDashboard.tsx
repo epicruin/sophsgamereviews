@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette, ChevronRight, ChevronLeft, FileText, User, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Medal, Swords, Palette, ChevronRight, ChevronLeft, FileText, User, Clock, PenLine } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIReviewSpinner } from "@/components/admin/AIReviewSpinner";
@@ -740,6 +740,10 @@ const AdminDashboard = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Button size="sm" onClick={() => navigate("/admin/notes")}>
+                <PenLine className="h-4 w-4 mr-2" />
+                Notes
+              </Button>
               <Button size="sm" onClick={() => navigate("/admin/articles/create")}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Article

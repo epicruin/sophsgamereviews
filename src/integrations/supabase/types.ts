@@ -27,6 +27,53 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          category: string
+          completed: boolean
+          created_at: string
+          updated_at: string
+          due_date: string | null
+          priority: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          content: string
+          category: string
+          completed?: boolean
+          created_at?: string
+          updated_at?: string
+          due_date?: string | null
+          priority?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string
+          category?: string
+          completed?: boolean
+          created_at?: string
+          updated_at?: string
+          due_date?: string | null
+          priority?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       homepage_section_order: {
         Row: {
           id: string
