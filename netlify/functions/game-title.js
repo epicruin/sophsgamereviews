@@ -66,7 +66,7 @@ exports.handler = async function(event, context) {
 
     const existingTitlesStr = allExistingTitles.join(", ");
   
-    const prompt = `Suggest a video game title that is available on at least one of these platforms: PC, PlayStation 5, PlayStation 4, Xbox Series X/S, Xbox One, or Nintendo Switch.
+    const prompt = `Suggest a video game title for a female-focused gaming review website (dont be cliche though) that is available on at least one of these platforms: PC, PlayStation 5, PlayStation 4, Xbox Series X/S, Xbox One, or Nintendo Switch.
     The game should be a real, existing game that has been released.
     ${existingTitlesStr ? `DO NOT suggest any of these games that are already in the list: ${existingTitlesStr}` : ''}
     Reply with ONLY the exact game title, nothing else.`;
