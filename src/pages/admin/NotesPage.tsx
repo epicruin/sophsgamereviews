@@ -89,6 +89,9 @@ const NotesPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Note | null>(null);
   const [viewDocDialogOpen, setViewDocDialogOpen] = useState(false);
+  const [viewDocPreview, setViewDocPreview] = useState(true);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [viewNoteDialogOpen, setViewNoteDialogOpen] = useState(false);
 
   // Fetch notes from Supabase on component mount and tab change
   useEffect(() => {
@@ -573,6 +576,12 @@ const NotesPage = () => {
     return content.substring(0, maxLength) + "...";
   };
 
+  // Handle opening a note to view
+  const handleViewNote = (note: Note) => {
+    setSelectedNote(note);
+    setViewNoteDialogOpen(true);
+  };
+
   // Handle opening a doc to view
   const handleViewDoc = (note: Note) => {
     setSelectedDoc(note);
@@ -950,13 +959,31 @@ const NotesPage = () => {
                   )}
                 </div>
               ) : (
-                <Textarea
-                  placeholder={addItemType === 'note' ? "Quick note content" : "Document content - supports Markdown formatting"}
-                  value={newNoteContent}
-                  onChange={(e) => setNewNoteContent(e.target.value)}
-                  rows={addItemType === 'note' ? 3 : 8}
-                  className={addItemType === 'doc' ? "font-mono text-sm" : ""}
-                />
+                <div className="space-y-1">
+                  <Textarea
+                    placeholder={addItemType === 'note' ? "Quick note content" : "Document content - supports Markdown formatting"}
+                    value={newNoteContent}
+                    onChange={(e) => {
+                      if (addItemType === 'note' && e.target.value.length > 300) {
+                        // Limit to 300 chars only for notes
+                        setNewNoteContent(e.target.value.slice(0, 300));
+                      } else {
+                        setNewNoteContent(e.target.value);
+                      }
+                    }}
+                    rows={addItemType === 'note' ? 3 : 8}
+                    maxLength={addItemType === 'note' ? 300 : undefined}
+                    className={addItemType === 'doc' ? "font-mono text-sm" : ""}
+                  />
+                  {addItemType === 'note' && (
+                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                      <span>{newNoteContent.length}/300 characters</span>
+                      {newNoteContent.length >= 280 && (
+                        <span className="text-primary">For longer notes, add it as a document</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               <div className="flex flex-wrap justify-end gap-2">
@@ -1200,9 +1227,16 @@ const NotesPage = () => {
                       <Card 
                         key={note.id} 
                         className={cn(
-                          "border overflow-hidden transition-all",
+                          "border overflow-hidden transition-all cursor-pointer hover:bg-accent/50",
                           note.completed && "bg-muted/50 border-muted"
                         )}
+                        onClick={(e) => {
+                          // Allow checkbox and buttons to work without opening dialog
+                          if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) {
+                            return;
+                          }
+                          handleViewNote(note);
+                        }}
                       >
                         <div className="flex items-start p-4 gap-3">
                           <Checkbox 
@@ -1361,28 +1395,12 @@ const NotesPage = () => {
                               </div>
                             </div>
                             <div className="space-y-2">
-                              {renderContent(note, isNoteExpanded(note.id))}
-                              
-                              {note.content && note.content.length > 200 && (
-                                <Button
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-xs p-0 h-6 text-muted-foreground hover:text-foreground"
-                                  onClick={() => toggleNoteExpand(note.id)}
-                                >
-                                  {isNoteExpanded(note.id) ? (
-                                    <div className="flex items-center">
-                                      <ChevronUp className="h-3 w-3 mr-1" />
-                                      <span>Show less</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center">
-                                      <ChevronDown className="h-3 w-3 mr-1" />
-                                      <span>Show more</span>
-                                    </div>
-                                  )}
-                                </Button>
-                              )}
+                              <p className={cn(
+                                "text-sm whitespace-pre-line break-words",
+                                note.completed && "line-through text-muted-foreground"
+                              )}>
+                                {truncateContent(note.content)}
+                              </p>
                             </div>
                             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                               <span>Created: {safeFormatDate(note.created_at)}</span>
@@ -1514,9 +1532,88 @@ const NotesPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Note view dialog */}
+      <Dialog open={viewNoteDialogOpen} onOpenChange={setViewNoteDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenLine className="h-5 w-5" />
+              {selectedNote?.title}
+            </DialogTitle>
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">
+                  Created: {selectedNote ? safeFormatDate(selectedNote.created_at) : ''}
+                </span>
+                {selectedNote?.priority && (
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full bg-primary/10 capitalize flex items-center gap-1",
+                    selectedNote.priority === "high" ? "text-rose-500" : 
+                    selectedNote.priority === "medium" ? "text-amber-500" : 
+                    "text-green-500"
+                  )}>
+                    {getPriorityIcon(selectedNote.priority)}
+                    <span>{selectedNote.priority}</span>
+                  </span>
+                )}
+              </div>
+              <div>
+                {selectedNote?.due_date && (
+                  <span className={cn(
+                    "text-sm font-medium flex items-center gap-1",
+                    new Date(selectedNote.due_date) < new Date() ? "text-rose-500" : "text-primary"
+                  )}>
+                    <CalendarDays className="h-4 w-4" />
+                    Due: {safeFormatDate(selectedNote.due_date, "No date set")}
+                  </span>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="flex-1 mt-4 overflow-y-auto" style={{ maxHeight: "calc(80vh - 180px)" }}>
+            <div className="p-2 whitespace-pre-line">
+              {selectedNote?.content}
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-4 gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                if (selectedNote) {
+                  handleToggleNote(selectedNote.id);
+                  setViewNoteDialogOpen(false);
+                }
+              }}
+              className="gap-2"
+            >
+              <Check className="h-4 w-4" />
+              {selectedNote?.completed ? "Mark Incomplete" : "Mark Complete"}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                if (selectedNote) {
+                  navigator.clipboard.writeText(selectedNote.content);
+                  toast.success("Note content copied");
+                }
+              }}
+              className="gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Content
+            </Button>
+            <Button onClick={() => setViewNoteDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Document view dialog */}
       <Dialog open={viewDocDialogOpen} onOpenChange={setViewDocDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedDoc?.pinned ? (
@@ -1538,6 +1635,26 @@ const NotesPage = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                <div className="flex border rounded-md overflow-hidden mr-2">
+                  <Button
+                    type="button"
+                    variant={!viewDocPreview ? "default" : "ghost"}
+                    size="sm"
+                    className="rounded-none px-3 py-0 h-7"
+                    onClick={() => setViewDocPreview(false)}
+                  >
+                    Raw
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={viewDocPreview ? "default" : "ghost"}
+                    size="sm"
+                    className="rounded-none px-3 py-0 h-7"
+                    onClick={() => setViewDocPreview(true)}
+                  >
+                    Preview
+                  </Button>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1564,15 +1681,21 @@ const NotesPage = () => {
             </div>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 mt-4">
-            <div className="prose prose-sm dark:prose-invert max-w-none p-2">
-              {selectedDoc && (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {selectedDoc.content}
-                </ReactMarkdown>
-              )}
-            </div>
-          </ScrollArea>
+          <div className="flex-1 mt-4 overflow-y-auto" style={{ maxHeight: "calc(80vh - 180px)" }}>
+            {viewDocPreview ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none p-2">
+                {selectedDoc && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {selectedDoc.content}
+                  </ReactMarkdown>
+                )}
+              </div>
+            ) : (
+              <div className="font-mono text-sm bg-muted/30 p-4 whitespace-pre-wrap">
+                {selectedDoc?.content}
+              </div>
+            )}
+          </div>
           
           <DialogFooter className="mt-4 gap-2">
             <Button 
