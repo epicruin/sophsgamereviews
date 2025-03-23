@@ -203,6 +203,8 @@ exports.handler = async function(event, context) {
 
 (Insert concluding content here, using occasional bold or italics for emphasis. Remember to include a rating with a clear explanation in bold, for example: **I'd rate it an 8.5 out of 10 for its engaging story and accessible gameplay.**)
 
+---
+
 Use the markdown template above, maintaining the same line spacing and subtitles. Write from the perspective of a female game reviewer from England, targeting a female audience. Use conversational British English expressions and maintain an authentic, relatable tone throughout.`
     };
     
@@ -285,81 +287,83 @@ Use the markdown template above, maintaining the same line spacing and subtitles
 
 (Write 2-3 paragraphs of engaging introduction here, using occasional **bold** or *italic* formatting for emphasis. Include the game's genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy.)
 
-IMPORTANT: Replace ONLY the content in parentheses with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the header format exactly as shown above.`
+---
+
+IMPORTANT: Replace ONLY the content in parentheses with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the header format and the ending divider (---) exactly as shown above.`
             },
             {
               section: "gameplay",
               prompt: `Write the gameplay section for a review of ${gameTitle} following this exact format:
 
----
-
 #### Gameplay: [Catchy Gameplay Subtitle]
 
 (Write 2-3 paragraphs about the gameplay experience, using occasional **bold** or *italic* formatting for emphasis. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic.)
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Gameplay Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
+---
+
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Gameplay Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
             },
             {
               section: "story",
               prompt: `Write the story section for a review of ${gameTitle} following this exact format:
 
----
-
 #### Story: [Catchy Story Subtitle]
 
 (Write 2-3 paragraphs about the story and narrative elements, using occasional **bold** or *italic* formatting for emphasis. Explore the game's story, characters, and narrative elements without spoiling key plot points.)
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Story Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
+---
+
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Story Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
             },
             {
               section: "presentation",
               prompt: `Write the graphics and sound section for a review of ${gameTitle} following this exact format:
 
----
-
 #### Graphics and Sound: [Catchy Graphics and Sound Subtitle]
 
 (Write 2-3 paragraphs about the visual presentation, art style, and sound design, using occasional **bold** or *italic* formatting for emphasis. Highlight standout elements and areas for improvement.)
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Graphics and Sound Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
+---
+
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Graphics and Sound Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
             },
             {
               section: "female_appeal",
               prompt: `Write the section about female gamer appeal for a review of ${gameTitle} following this exact format:
 
----
-
 #### Why This Game Appeals to Female Gamers: [Catchy Subtitle for Female Gamers]
 
 (Write 1-2 paragraphs discussing aspects of the game that might particularly resonate with female gamers, using occasional **bold** or *italic* formatting for emphasis. Discuss specific features and elements that make it appealing.)
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Subtitle for Female Gamers] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
+---
+
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Subtitle for Female Gamers] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
             },
             {
               section: "mods",
               prompt: `Write the mods section for a review of ${gameTitle} following this exact format:
 
----
-
 #### Mods: [Catchy Mods Subtitle]
 
 (Write 1-2 paragraphs about mods available for the game, using occasional **bold** or *italic* formatting for emphasis. Discuss popular mods and how they enhance the gameplay experience.)
 
+---
+
 If you determine that mods are NOT applicable to this game (for example, if it's a console exclusive or doesn't support modding), just return the text "NO_MODS_APPLICABLE" and nothing else.
 
-IMPORTANT: If mods are applicable, replace ONLY the content in parentheses and the [Catchy Mods Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
+IMPORTANT: If mods are applicable, replace ONLY the content in parentheses and the [Catchy Mods Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
             },
             {
               section: "conclusion",
               prompt: `Write the conclusion for a review of ${gameTitle} following this exact format:
 
----
-
 #### Conclusion: [Catchy Conclusion Subtitle]
 
 (Write 2-3 paragraphs wrapping up the review, using occasional **bold** or *italic* formatting for emphasis. Provide your overall impression and who would enjoy this game most. Make sure to include a rating with a clear explanation in bold, for example: **I'd rate it an 8.5 out of 10 for its engaging story and accessible gameplay.**)
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Conclusion Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.
+---
+
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Conclusion Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.
 
 End with a catchy closing line that a female reviewer from England might use.`
             }
@@ -502,7 +506,14 @@ End with a catchy closing line that a female reviewer from England might use.`
 
 (Conclusion paragraphs with occasional **bold** or *italic* formatting for emphasis, including a **bold rating**)
 
-EXTREMELY IMPORTANT: Replace ONLY the content in parentheses and the bracketed subtitles with your writing. DO NOT modify the markdown structure, headers, or formatting in any way. Keep all heading levels, section dividers, and formatting symbols exactly as shown above.`
+---
+
+EXTREMELY IMPORTANT: 
+1. Replace ONLY the content in parentheses and the bracketed subtitles with your writing 
+2. DO NOT modify the markdown structure, headers, or formatting in any way
+3. Keep all heading levels (### and ####) exactly as shown
+4. Every section MUST end with a divider (---) exactly as shown
+5. The ending divider after the conclusion is required`
                   },
                   {
                     role: "user",
