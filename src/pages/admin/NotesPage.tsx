@@ -92,6 +92,9 @@ const NotesPage = () => {
   const [viewDocPreview, setViewDocPreview] = useState(true);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [viewNoteDialogOpen, setViewNoteDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch notes from Supabase on component mount and tab change
   useEffect(() => {
@@ -156,17 +159,33 @@ const NotesPage = () => {
         return;
       }
       
+      // Get count for pagination
+      const countResult = await supabase
+        .from('notes')
+        .select('id', { count: 'exact' })
+        .eq('category', activeTab)
+        .eq('user_id', userId);
+        
+      if (countResult.count !== null) {
+        setTotalItems(countResult.count);
+      }
+      
+      // Calculate pagination offset
+      const offset = (currentPage - 1) * itemsPerPage;
+      
+      // Query database for notes with the current category and pagination
       const { data, error } = await supabase
         .from('notes')
         .select('*')
         .eq('category', activeTab)
         .eq('user_id', userId) // Filter by the current user's ID
-        .order('created_at', { ascending: false });
-
+        .order('created_at', { ascending: false })
+        .range(offset, offset + itemsPerPage - 1);
+      
       if (error) {
         throw error;
       }
-
+      
       // Convert database types to application types with safe conversions
       const typedNotes = (data || []).map((note: NoteDatabaseRow): Note => ({
         ...note,
@@ -175,7 +194,7 @@ const NotesPage = () => {
         doc_category: note.doc_category ? safeDocCategory(note.doc_category) : undefined,
         pinned: note.pinned || false
       }));
-
+      
       setNotes(typedNotes);
     } catch (error) {
       console.error('Error fetching notes:', error);
@@ -185,6 +204,13 @@ const NotesPage = () => {
       setIsLoading(false);
     }
   };
+
+  // Effect to refetch notes when pagination changes
+  useEffect(() => {
+    if (userId) {
+      fetchNotes();
+    }
+  }, [userId, activeTab, currentPage]);
 
   const handleAddNote = async (category: NoteCategory) => {
     if (!newNoteTitle.trim()) {
@@ -644,103 +670,129 @@ const NotesPage = () => {
     }
     
     return (
-      <ScrollArea className="h-[calc(100vh-500px)] min-h-[400px]">
-        <div className="space-y-2 p-1">
-          {filteredNotes.map((doc) => (
-            <Card 
-              key={doc.id} 
-              className={cn(
-                "border transition-all hover:bg-accent/50 cursor-pointer",
-                doc.pinned && "border-primary border-2",
-                doc.completed && "bg-muted/50"
-              )}
-              onClick={() => handleViewDoc(doc)}
-            >
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1">
-                    {doc.pinned ? (
-                      <Bookmark className="h-5 w-5 text-primary fill-primary" />
-                    ) : (
-                      <FileText className="h-5 w-5 text-primary" />
-                    )}
-                    <h3 className={cn(
-                      "font-medium break-words",
-                      doc.completed && "text-muted-foreground"
-                    )}>
-                      {doc.title}
-                    </h3>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {doc.doc_category && (
-                      <span className={cn(
-                        "text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize"
+      <div className="space-y-4">
+        <ScrollArea className="overflow-y-auto max-h-[600px]">
+          <div className="space-y-2 p-1">
+            {filteredNotes.map((doc) => (
+              <Card 
+                key={doc.id} 
+                className={cn(
+                  "border transition-all hover:bg-accent/50 cursor-pointer",
+                  doc.pinned && "border-primary border-2",
+                  doc.completed && "bg-muted/50"
+                )}
+                onClick={() => handleViewDoc(doc)}
+              >
+                <div className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      {doc.pinned ? (
+                        <Bookmark className="h-5 w-5 text-primary fill-primary" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-primary" />
+                      )}
+                      <h3 className={cn(
+                        "font-medium break-words",
+                        doc.completed && "text-muted-foreground"
                       )}>
-                        {doc.doc_category.replace(/_/g, ' ')}
-                      </span>
-                    )}
+                        {doc.title}
+                      </h3>
+                    </div>
                     
-                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTogglePin(doc.id);
-                              }}
-                            >
-                              {doc.pinned ? (
-                                <Bookmark className="h-3.5 w-3.5 text-primary fill-primary" />
-                              ) : (
-                                <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {doc.pinned ? "Unpin document" : "Pin document"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    <div className="flex items-center gap-2">
+                      {doc.doc_category && (
+                        <span className={cn(
+                          "text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize"
+                        )}>
+                          {doc.doc_category.replace(/_/g, ' ')}
+                        </span>
+                      )}
                       
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteNote(doc.id);
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Delete document
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTogglePin(doc.id);
+                                }}
+                              >
+                                {doc.pinned ? (
+                                  <Bookmark className="h-3.5 w-3.5 text-primary fill-primary" />
+                                ) : (
+                                  <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {doc.pinned ? "Unpin document" : "Pin document"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteNote(doc.id);
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Delete document
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </div>
+                  
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      Created: {safeFormatDate(doc.created_at)}
+                    </span>
+                  </div>
                 </div>
-                
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs text-muted-foreground">
-                    Created: {safeFormatDate(doc.created_at)}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+        
+        {totalItems > itemsPerPage && (
+          <div className="flex justify-center items-center gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {Math.ceil(totalItems / itemsPerPage)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil(totalItems / itemsPerPage)}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1221,204 +1273,130 @@ const NotesPage = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <ScrollArea className="h-[calc(100vh-500px)] min-h-[400px]">
-                  <div className="space-y-4 p-1">
-                    {filteredNotes.map((note) => (
-                      <Card 
-                        key={note.id} 
-                        className={cn(
-                          "border overflow-hidden transition-all cursor-pointer hover:bg-accent/50",
-                          note.completed && "bg-muted/50 border-muted"
-                        )}
-                        onClick={(e) => {
-                          // Allow checkbox and buttons to work without opening dialog
-                          if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) {
-                            return;
-                          }
-                          handleViewNote(note);
-                        }}
-                      >
-                        <div className="flex items-start p-4 gap-3">
-                          <Checkbox 
-                            checked={note.completed}
-                            onCheckedChange={() => handleToggleNote(note.id)}
-                            className={cn(
-                              "mt-1",
-                              "data-[state=checked]:bg-green-500 data-[state=checked]:text-white data-[state=checked]:border-green-500"
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
+                <div className="space-y-4">
+                  <ScrollArea className="overflow-y-auto max-h-[600px]">
+                    <div className="space-y-2 p-1">
+                      {filteredNotes.map((note) => (
+                        <Card 
+                          key={note.id} 
+                          className={cn(
+                            "border transition-all hover:bg-accent/50 cursor-pointer",
+                            note.completed && "bg-muted/50"
+                          )}
+                          onClick={() => handleViewNote(note)}
+                        >
+                          <div className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 flex-1">
+                                <Checkbox 
+                                  checked={note.completed}
+                                  onCheckedChange={() => handleToggleNote(note.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={cn(
+                                    "data-[state=checked]:bg-green-500 data-[state=checked]:text-white data-[state=checked]:border-green-500"
+                                  )}
+                                />
                                 <h3 className={cn(
                                   "font-medium break-words",
-                                  note.completed && "line-through text-muted-foreground"
+                                  note.completed && "text-muted-foreground line-through"
                                 )}>
                                   {note.title}
                                 </h3>
                               </div>
+                              
                               <div className="flex items-center gap-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Select 
-                                        value={note.priority || "medium"} 
-                                        onValueChange={(value) => handleUpdatePriority(note.id, value as Priority)}
-                                      >
-                                        <SelectTrigger className={cn(
-                                          "h-8 w-auto border-0 text-xs font-medium",
-                                          getPriorityColor(note.priority)
-                                        )}>
-                                          <SelectValue>
-                                            <div className="flex items-center">
-                                              {getPriorityIcon(note.priority)}
-                                              <span className="ml-1">{note.priority || "No priority"}</span>
-                                            </div>
-                                          </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="high" className="text-rose-500 font-medium">
-                                            <div className="flex items-center">
-                                              <AlertTriangle className="h-4 w-4 mr-2" />
-                                              High Priority
-                                            </div>
-                                          </SelectItem>
-                                          <SelectItem value="medium" className="text-amber-500 font-medium">
-                                            <div className="flex items-center">
-                                              <AlertCircle className="h-4 w-4 mr-2" />
-                                              Medium Priority
-                                            </div>
-                                          </SelectItem>
-                                          <SelectItem value="low" className="text-green-500 font-medium">
-                                            <div className="flex items-center">
-                                              <ThumbsUp className="h-4 w-4 mr-2" />
-                                              Low Priority
-                                            </div>
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      Change priority
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-
-                                <Popover>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <PopoverTrigger asChild>
+                                <span className={cn(
+                                  "text-xs px-2 py-0.5 rounded-full flex items-center gap-1",
+                                  note.priority === "high" ? "bg-rose-500/10 text-rose-500" : 
+                                  note.priority === "medium" ? "bg-amber-500/10 text-amber-500" : 
+                                  "bg-green-500/10 text-green-500"
+                                )}>
+                                  {getPriorityIcon(note.priority)}
+                                  <span>{note.priority}</span>
+                                </span>
+                                
+                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                  {note.due_date && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
                                           <Button 
                                             variant="ghost" 
                                             size="icon"
                                             className={cn(
                                               "h-7 w-7",
-                                              note.due_date && new Date(note.due_date) < new Date() ? "text-rose-500" : "",
-                                              note.due_date ? "text-primary" : "text-muted-foreground"
+                                              new Date(note.due_date) < new Date() ? "text-rose-500" : "text-primary"
                                             )}
                                           >
                                             <CalendarDays className="h-3.5 w-3.5" />
                                           </Button>
-                                        </PopoverTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          Due: {safeFormatDate(note.due_date)}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                  
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-7 w-7 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteNote(note.id);
+                                          }}
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        {note.due_date ? "Change due date" : "Add due date"}
+                                        Delete note
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
-                                  <PopoverContent className="w-auto p-0" align="end">
-                                    <div className="p-3 border-b">
-                                      <div className="flex justify-between items-center">
-                                        <span className="font-medium">Set due date</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleUpdateDueDate(note.id, null)}
-                                        >
-                                          Clear
-                                        </Button>
-                                      </div>
-                                      <div className="flex mt-2 gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => handleUpdateDueDate(note.id, new Date())}>
-                                          Today
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleUpdateDueDate(note.id, addDays(new Date(), 1))}>
-                                          Tomorrow
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleUpdateDueDate(note.id, addDays(new Date(), 7))}>
-                                          Next week
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <CalendarComponent
-                                      mode="single"
-                                      selected={note.due_date && !isNaN(new Date(note.due_date).getTime())
-                                        ? new Date(note.due_date) 
-                                        : undefined}
-                                      onSelect={(date) => handleUpdateDueDate(note.id, date)}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-
-                                {/* Copy content button - added for all note types */}
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(note.content);
-                                          toast.success("Note content copied to clipboard");
-                                        }}
-                                      >
-                                        <Copy className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      Copy content
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => handleDeleteNote(note.id)}
-                                  className="h-7 w-7 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                                </div>
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              <p className={cn(
-                                "text-sm whitespace-pre-line break-words",
-                                note.completed && "line-through text-muted-foreground"
-                              )}>
-                                {truncateContent(note.content)}
-                              </p>
-                            </div>
-                            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                              <span>Created: {safeFormatDate(note.created_at)}</span>
-                              {note.due_date && (
-                                <span className={cn(
-                                  "font-medium",
-                                  new Date(note.due_date) < new Date() ? "text-rose-500" : ""
-                                )}>
-                                  Due: {safeFormatDate(note.due_date, "No date set")}
-                                </span>
-                              )}
+                            
+                            <div className="flex justify-between items-center mt-2">
+                              <span className="text-xs text-muted-foreground">
+                                Created: {safeFormatDate(note.created_at)}
+                              </span>
                             </div>
                           </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
+                        </Card>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  
+                  {totalItems > itemsPerPage && (
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {currentPage} of {Math.ceil(totalItems / itemsPerPage)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        disabled={currentPage >= Math.ceil(totalItems / itemsPerPage)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )}
             </TabsContent>
           ))}
