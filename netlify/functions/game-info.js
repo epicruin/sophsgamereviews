@@ -281,11 +281,11 @@ Use the markdown template above, maintaining the same line spacing and subtitles
               section: "introduction",
               prompt: `Write the introduction for a review of ${gameTitle} following this exact format:
 
-### ${gameTitle} Review: [Create a catchy, SEO-friendly subtitle here]
+### ${gameTitle} Review: [Catchy Main Title Subtitle]
 
 (Write 2-3 paragraphs of engaging introduction here, using occasional **bold** or *italic* formatting for emphasis. Include the game's genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy.)
 
-Your introduction should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+IMPORTANT: Replace ONLY the content in parentheses with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the header format exactly as shown above.`
             },
             {
               section: "gameplay",
@@ -293,11 +293,11 @@ Your introduction should be written from the perspective of a female game review
 
 ---
 
-#### Gameplay: [Create a catchy, SEO-friendly gameplay subtitle here]
+#### Gameplay: [Catchy Gameplay Subtitle]
 
 (Write 2-3 paragraphs about the gameplay experience, using occasional **bold** or *italic* formatting for emphasis. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic.)
 
-Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Gameplay Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
             },
             {
               section: "story",
@@ -305,11 +305,11 @@ Your content should be written from the perspective of a female game reviewer fr
 
 ---
 
-#### Story: [Create a catchy, SEO-friendly story subtitle here]
+#### Story: [Catchy Story Subtitle]
 
 (Write 2-3 paragraphs about the story and narrative elements, using occasional **bold** or *italic* formatting for emphasis. Explore the game's story, characters, and narrative elements without spoiling key plot points.)
 
-Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Story Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
             },
             {
               section: "presentation",
@@ -317,11 +317,11 @@ Your content should be written from the perspective of a female game reviewer fr
 
 ---
 
-#### Graphics and Sound: [Create a catchy, SEO-friendly graphics/sound subtitle here]
+#### Graphics and Sound: [Catchy Graphics and Sound Subtitle]
 
 (Write 2-3 paragraphs about the visual presentation, art style, and sound design, using occasional **bold** or *italic* formatting for emphasis. Highlight standout elements and areas for improvement.)
 
-Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Graphics and Sound Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
             },
             {
               section: "female_appeal",
@@ -329,11 +329,11 @@ Your content should be written from the perspective of a female game reviewer fr
 
 ---
 
-#### Why This Game Appeals to Female Gamers: [Create a catchy, SEO-friendly subtitle here]
+#### Why This Game Appeals to Female Gamers: [Catchy Subtitle for Female Gamers]
 
 (Write 1-2 paragraphs discussing aspects of the game that might particularly resonate with female gamers, using occasional **bold** or *italic* formatting for emphasis. Discuss specific features and elements that make it appealing.)
 
-Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Subtitle for Female Gamers] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
             },
             {
               section: "mods",
@@ -341,13 +341,13 @@ Your content should be written from the perspective of a female game reviewer fr
 
 ---
 
-#### Mods: [Create a catchy, SEO-friendly mods subtitle here]
+#### Mods: [Catchy Mods Subtitle]
 
 (Write 1-2 paragraphs about mods available for the game, using occasional **bold** or *italic* formatting for emphasis. Discuss popular mods and how they enhance the gameplay experience.)
 
 If you determine that mods are NOT applicable to this game (for example, if it's a console exclusive or doesn't support modding), just return the text "NO_MODS_APPLICABLE" and nothing else.
 
-Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+IMPORTANT: If mods are applicable, replace ONLY the content in parentheses and the [Catchy Mods Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.`
             },
             {
               section: "conclusion",
@@ -355,13 +355,13 @@ Your content should be written from the perspective of a female game reviewer fr
 
 ---
 
-#### Conclusion: [Create a catchy, SEO-friendly conclusion subtitle here]
+#### Conclusion: [Catchy Conclusion Subtitle]
 
 (Write 2-3 paragraphs wrapping up the review, using occasional **bold** or *italic* formatting for emphasis. Provide your overall impression and who would enjoy this game most. Make sure to include a rating with a clear explanation in bold, for example: **I'd rate it an 8.5 out of 10 for its engaging story and accessible gameplay.**)
 
-End with a catchy closing line that a female reviewer from England might use.
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Conclusion Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting.
 
-Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+End with a catchy closing line that a female reviewer from England might use.`
             }
           ];
           
@@ -386,7 +386,9 @@ Your content should be written from the perspective of a female game reviewer fr
                       role: "system",
                       content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone with British expressions. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
                       
-                      You MUST follow the EXACT format provided in the user's prompt, including the markdown formatting, section headers, and occasional bold/italic text for emphasis.`
+                      You MUST follow the EXACT format provided in the user's prompt, including the markdown formatting, section headers, and occasional bold/italic text for emphasis.
+                      
+                      DO NOT modify the markdown structure or formatting. Keep all the section headers, dividers, and formatting exactly as provided in the template.`
                     },
                     {
                       role: "user",
@@ -441,7 +443,8 @@ Your content should be written from the perspective of a female game reviewer fr
           // Always include conclusion
           sectionsToInclude.push(results[6]);
           
-          const combinedReview = sectionsToInclude.join('\n');
+          // Join without adding extra newlines (the sections already include proper markdown)
+          const combinedReview = sectionsToInclude.join('');
           console.log(`Full review generated, total length: ${combinedReview.length}`);
           
           // Check if too many sections failed
@@ -459,7 +462,7 @@ Your content should be written from the perspective of a female game reviewer fr
                     role: "system",
                     content: `You are a professional female game reviewer from England writing for a female audience. Create a complete review for ${gameTitle} following EXACTLY this markdown template format:
 
-### [Game Title] Review: [Catchy Main Title Subtitle]
+### ${gameTitle} Review: [Catchy Main Title Subtitle]
 
 (Introduction paragraphs with occasional **bold** or *italic* formatting for emphasis)
 
@@ -499,23 +502,25 @@ Your content should be written from the perspective of a female game reviewer fr
 
 (Conclusion paragraphs with occasional **bold** or *italic* formatting for emphasis, including a **bold rating**)
 
-You MUST maintain this exact markdown structure with section dividers as shown.`
+EXTREMELY IMPORTANT: Replace ONLY the content in parentheses and the bracketed subtitles with your writing. DO NOT modify the markdown structure, headers, or formatting in any way. Keep all heading levels, section dividers, and formatting symbols exactly as shown above.`
                   },
                   {
                     role: "user",
                     content: `Write a complete review for ${gameTitle} following the exact markdown template format. Create catchy, SEO-friendly subtitles for each section. Use occasional **bold** and *italic* formatting for emphasis. The review should be written from the perspective of a female game reviewer from England using conversational British English expressions.
 
-Include these sections in order:
-1. Title with catchy subtitle
-2. Introduction paragraphs
-3. Gameplay section with subtitle
-4. Story section with subtitle
-5. Graphics and Sound section with subtitle
-6. Why This Game Appeals to Female Gamers section with subtitle
-7. Mods section with subtitle (ONLY if applicable to this game)
-8. Conclusion with subtitle and a **bold rating statement**
+DO NOT change the template structure. Keep all heading formats (### and ####) and section dividers (---) exactly as shown in the system message.
 
-Maintain the exact markdown format with section dividers as shown in the system message.`
+Replace ONLY:
+1. [Catchy Main Title Subtitle] with a catchy subtitle
+2. [Catchy Gameplay Subtitle] with a gameplay subtitle
+3. [Catchy Story Subtitle] with a story subtitle
+4. [Catchy Graphics and Sound Subtitle] with a graphics/sound subtitle
+5. [Catchy Subtitle for Female Gamers] with a female appeal subtitle
+6. [Catchy Mods Subtitle] with a mods subtitle (omit entire mods section if not applicable)
+7. [Catchy Conclusion Subtitle] with a conclusion subtitle
+8. The text in parentheses with your review content, including a **bold rating statement** in the conclusion
+
+Maintain the exact markdown format without any modifications to the structure.`
                   }
                 ],
                 model: "gpt-4o-mini",
