@@ -161,24 +161,49 @@ exports.handler = async function(event, context) {
         3. split_screen: Does the game support split-screen multiplayer?
         4. max_players: What is the maximum number of players supported in any mode?
         5. Verify all information from reliable sources like the official game website, Steam, or other gaming platforms.`,
-      fullReview: `Write a captivating and informative game review of ${gameTitle} from the perspective of a female game reviewer from England, targeting a female audience.
+      fullReview: `Act as a professional proofreader and editor for a female-focused gaming review website. Subtly rewrite this review of ${gameTitle} to align with our website's tone and formatting. Do not explicitly mention this task; simply output the revised review. Ensure the review includes the following sections with catchy, SEO-friendly subtitles, adapting the content while maintaining a subtle and inclusive tone.
 
-        Review Structure:
-        
-        **Introduction:** Craft an engaging opening that introduces the game, its genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy.
-        
-        **Gameplay Experience:** Dive into the core gameplay mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic.
-        
-        **Story and Narrative (if applicable):** Explore the game's story, characters, and narrative elements. Provide enough intrigue without spoiling key plot points.
-        
-        **Graphics and Sound:** Evaluate the visual presentation, art style, and sound design. Highlight standout elements and areas for improvement.
-        
-        **Target Audience:** Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing.
-        
-        **Overall Rating and Recommendation:** Conclude with your rating and detailed recommendation. Explain your reasoning and specify who would enjoy this game most.
-        
-        Example tone (adapt to fit the specific game):
-        "Right, ladies, let's talk about ${gameTitle}! This brilliant little indie gem on the Nintendo Switch has completely stolen my heart. From the charming pixel art to the addictive gameplay, it's a must-have for any fan of platformers."`
+### ${gameTitle} Review: [Catchy Main Title Subtitle]
+
+(Insert introductory content here, using occasional bold or italics for emphasis.)
+
+---
+
+#### Gameplay: [Catchy Gameplay Subtitle]
+
+(Insert gameplay content here, using occasional bold or italics for emphasis.)
+
+---
+
+#### Story: [Catchy Story Subtitle]
+
+(Insert story content here, using occasional bold or italics for emphasis.)
+
+---
+
+#### Graphics and Sound: [Catchy Graphics and Sound Subtitle]
+
+(Insert graphics and sound content here, using occasional bold or italics for emphasis.)
+
+---
+
+#### Why This Game Appeals to Female Gamers: [Catchy Subtitle for Female Gamers]
+
+(Insert content here discussing aspects of the game that might particularly resonate with female gamers, using occasional bold or italics for emphasis.)
+
+---
+
+#### Mods: [Catchy Mods Subtitle] (If Applicable, omit this section if the game doesn't support mods)
+
+(Insert content about mods here, if relevant to the game, using occasional bold or italics for emphasis.)
+
+---
+
+#### Conclusion: [Catchy Conclusion Subtitle]
+
+(Insert concluding content here, using occasional bold or italics for emphasis. Remember to include a rating with a clear explanation in bold, for example: **I'd rate it an 8.5 out of 10 for its engaging story and accessible gameplay.**)
+
+Use the markdown template above, maintaining the same line spacing and subtitles. Write from the perspective of a female game reviewer from England, targeting a female audience. Use conversational British English expressions and maintain an authentic, relatable tone throughout.`
     };
     
     try {
@@ -254,39 +279,89 @@ exports.handler = async function(event, context) {
           const sectionPrompts = [
             {
               section: "introduction",
-              prompt: `Write an engaging introduction (2-3 paragraphs) for a review of ${gameTitle} from the perspective of a female game reviewer from England. Include the game's genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy.
-              
-              Start with a greeting like "Right, ladies" or "Alright, ladies" as this will be the beginning of the review.`
+              prompt: `Write the introduction for a review of ${gameTitle} following this exact format:
+
+### ${gameTitle} Review: [Create a catchy, SEO-friendly subtitle here]
+
+(Write 2-3 paragraphs of engaging introduction here, using occasional **bold** or *italic* formatting for emphasis. Include the game's genre, platform, and key features. Hook the reader with your initial impressions and what makes this game noteworthy.)
+
+Your introduction should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
             },
             {
               section: "gameplay",
-              prompt: `Write about the gameplay experience (2-3 paragraphs) for ${gameTitle}. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic. 
-              
-              IMPORTANT: This is the second section of a review that has already begun. DO NOT start with "Alright, ladies" or any other greeting. DO NOT introduce the game again. Begin as if continuing a conversation already in progress.`
+              prompt: `Write the gameplay section for a review of ${gameTitle} following this exact format:
+
+---
+
+#### Gameplay: [Create a catchy, SEO-friendly gameplay subtitle here]
+
+(Write 2-3 paragraphs about the gameplay experience, using occasional **bold** or *italic* formatting for emphasis. Discuss core mechanics, controls, and overall feel. Share personal experiences and memorable moments to make the review relatable and authentic.)
+
+Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
             },
             {
               section: "story",
-              prompt: `Write about the story and narrative elements (2-3 paragraphs) of ${gameTitle}. Explore the game's story, characters, and narrative elements without spoiling key plot points.
-              
-              IMPORTANT: This is the middle section of a review that has already covered the introduction and gameplay. DO NOT start with "Alright, ladies" or any other greeting. DO NOT reintroduce the game. Begin as if continuing directly from a previous section about gameplay.`
+              prompt: `Write the story section for a review of ${gameTitle} following this exact format:
+
+---
+
+#### Story: [Create a catchy, SEO-friendly story subtitle here]
+
+(Write 2-3 paragraphs about the story and narrative elements, using occasional **bold** or *italic* formatting for emphasis. Explore the game's story, characters, and narrative elements without spoiling key plot points.)
+
+Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
             },
             {
               section: "presentation",
-              prompt: `Write about the graphics and sound (2-3 paragraphs) of ${gameTitle}. Highlight standout elements and areas for improvement.
-              
-              IMPORTANT: This is a continuation of an ongoing review. DO NOT start with "Alright, ladies" or any other greeting. DO NOT reintroduce the game. Begin as if continuing directly from previous sections about gameplay and story.`
+              prompt: `Write the graphics and sound section for a review of ${gameTitle} following this exact format:
+
+---
+
+#### Graphics and Sound: [Create a catchy, SEO-friendly graphics/sound subtitle here]
+
+(Write 2-3 paragraphs about the visual presentation, art style, and sound design, using occasional **bold** or *italic* formatting for emphasis. Highlight standout elements and areas for improvement.)
+
+Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
             },
             {
-              section: "audience",
-              prompt: `Write about the target audience (1-2 paragraphs) for ${gameTitle}. Share insights on why this game particularly resonates with female gamers. Discuss specific features and elements that make it appealing.
-              
-              IMPORTANT: This is a continuation of an ongoing review. DO NOT start with "Alright, ladies" or any other greeting. DO NOT reintroduce the game. Begin as if continuing directly from previous sections.`
+              section: "female_appeal",
+              prompt: `Write the section about female gamer appeal for a review of ${gameTitle} following this exact format:
+
+---
+
+#### Why This Game Appeals to Female Gamers: [Create a catchy, SEO-friendly subtitle here]
+
+(Write 1-2 paragraphs discussing aspects of the game that might particularly resonate with female gamers, using occasional **bold** or *italic* formatting for emphasis. Discuss specific features and elements that make it appealing.)
+
+Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
+            },
+            {
+              section: "mods",
+              prompt: `Write the mods section for a review of ${gameTitle} following this exact format:
+
+---
+
+#### Mods: [Create a catchy, SEO-friendly mods subtitle here]
+
+(Write 1-2 paragraphs about mods available for the game, using occasional **bold** or *italic* formatting for emphasis. Discuss popular mods and how they enhance the gameplay experience.)
+
+If you determine that mods are NOT applicable to this game (for example, if it's a console exclusive or doesn't support modding), just return the text "NO_MODS_APPLICABLE" and nothing else.
+
+Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
             },
             {
               section: "conclusion",
-              prompt: `Write a conclusion (2-3 paragraphs) for ${gameTitle} with an overall rating and recommendation. Explain your reasoning and specify who would enjoy this game most.
-              
-              IMPORTANT: This is the final section of an ongoing review. You may begin with a phrase like "To wrap things up" or similar, but DO NOT start with "Alright, ladies" or reintroduce the game. End with a catchy closing line that a female reviewer from England might use.`
+              prompt: `Write the conclusion for a review of ${gameTitle} following this exact format:
+
+---
+
+#### Conclusion: [Create a catchy, SEO-friendly conclusion subtitle here]
+
+(Write 2-3 paragraphs wrapping up the review, using occasional **bold** or *italic* formatting for emphasis. Provide your overall impression and who would enjoy this game most. Make sure to include a rating with a clear explanation in bold, for example: **I'd rate it an 8.5 out of 10 for its engaging story and accessible gameplay.**)
+
+End with a catchy closing line that a female reviewer from England might use.
+
+Your content should be written from the perspective of a female game reviewer from England targeting a female audience. Be conversational but professional.`
             }
           ];
           
@@ -309,20 +384,9 @@ exports.handler = async function(event, context) {
                   messages: [
                     {
                       role: "system",
-                      content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
+                      content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone with British expressions. This is for the ${sectionPrompt.section} section of a game review about ${gameTitle}.
                       
-                      IMPORTANT CONTEXT: This is part of a multi-section review where each section will be combined into a single cohesive review:
-                      - Introduction: Sets up the review with "Alright, ladies" and introduces the game
-                      - Gameplay: Continues the review (no greeting, no reintroduction)
-                      - Story: Continues about narrative (no greeting, no reintroduction)
-                      - Presentation: Continues about graphics/sound (no greeting, no reintroduction)
-                      - Audience: Continues about who would enjoy it (no greeting, no reintroduction)
-                      - Conclusion: Wraps everything up (no greeting, no reintroduction)
-                      
-                      Write ONLY your assigned section (${sectionPrompt.section}) in a way that flows naturally when combined with the others.
-                      
-                      Example tone (adapt to fit the specific game):
-                      "This brilliant little gem has completely stolen my heart. From the charming visuals to the addictive gameplay, it's a must-have for any fan of the genre."`
+                      You MUST follow the EXACT format provided in the user's prompt, including the markdown formatting, section headers, and occasional bold/italic text for emphasis.`
                     },
                     {
                       role: "user",
@@ -356,16 +420,28 @@ exports.handler = async function(event, context) {
             }
           }));
           
-          // Combine all sections into a full review with subtle section transitions
-          const sectionsWithHeaders = [
-            results[0], // Introduction (no header needed)
-            "\n\n" + results[1], // Gameplay 
-            "\n\n" + results[2], // Story
-            "\n\n" + results[3], // Presentation
-            "\n\n" + results[4], // Audience
-            "\n\n" + results[5]  // Conclusion
+          // Process the mods section - if it's not applicable, we'll remove it
+          let modsSection = results[5];
+          const includeModsSection = modsSection && !modsSection.includes("NO_MODS_APPLICABLE");
+          
+          // Combine all sections into a full review with proper markdown formatting
+          const sectionsToInclude = [
+            results[0], // Introduction with title (no additional formatting needed)
+            results[1], // Gameplay
+            results[2], // Story
+            results[3], // Graphics and Sound
+            results[4], // Female appeal
           ];
-          const combinedReview = sectionsWithHeaders.join('');
+          
+          // Only include mods section if applicable
+          if (includeModsSection) {
+            sectionsToInclude.push(modsSection);
+          }
+          
+          // Always include conclusion
+          sectionsToInclude.push(results[6]);
+          
+          const combinedReview = sectionsToInclude.join('\n');
           console.log(`Full review generated, total length: ${combinedReview.length}`);
           
           // Check if too many sections failed
@@ -381,21 +457,65 @@ exports.handler = async function(event, context) {
                 messages: [
                   {
                     role: "system",
-                    content: `You are a professional female game reviewer from England writing for a female audience. Write in an engaging, conversational tone. Create a complete game review for ${gameTitle}.
-                    
-                    Format your review with these sections:
-                    1. Introduction with a greeting like "Alright, ladies"
-                    2. Gameplay section
-                    3. Story section
-                    4. Presentation section (graphics/sound)
-                    5. Target audience section
-                    6. Conclusion with recommendation
-                    
-                    Keep the review concise but informative.`
+                    content: `You are a professional female game reviewer from England writing for a female audience. Create a complete review for ${gameTitle} following EXACTLY this markdown template format:
+
+### [Game Title] Review: [Catchy Main Title Subtitle]
+
+(Introduction paragraphs with occasional **bold** or *italic* formatting for emphasis)
+
+---
+
+#### Gameplay: [Catchy Gameplay Subtitle]
+
+(Gameplay paragraphs with occasional **bold** or *italic* formatting for emphasis)
+
+---
+
+#### Story: [Catchy Story Subtitle]
+
+(Story paragraphs with occasional **bold** or *italic* formatting for emphasis)
+
+---
+
+#### Graphics and Sound: [Catchy Graphics and Sound Subtitle]
+
+(Graphics and sound paragraphs with occasional **bold** or *italic* formatting for emphasis)
+
+---
+
+#### Why This Game Appeals to Female Gamers: [Catchy Subtitle for Female Gamers]
+
+(Paragraphs about female appeal with occasional **bold** or *italic* formatting for emphasis)
+
+---
+
+#### Mods: [Catchy Mods Subtitle] (Include this section ONLY if applicable to the game)
+
+(Paragraphs about mods with occasional **bold** or *italic* formatting for emphasis)
+
+---
+
+#### Conclusion: [Catchy Conclusion Subtitle]
+
+(Conclusion paragraphs with occasional **bold** or *italic* formatting for emphasis, including a **bold rating**)
+
+You MUST maintain this exact markdown structure with section dividers as shown.`
                   },
                   {
                     role: "user",
-                    content: `Write a complete review for ${gameTitle}. Start with "Alright, ladies" and structure it to cover gameplay, story, presentation, who would enjoy it, and end with your recommendation. Keep it authentic and conversational as if you're speaking directly to your audience.`
+                    content: `Write a complete review for ${gameTitle} following the exact markdown template format. Create catchy, SEO-friendly subtitles for each section. Use occasional **bold** and *italic* formatting for emphasis. The review should be written from the perspective of a female game reviewer from England using conversational British English expressions.
+
+Include these sections in order:
+1. Title with catchy subtitle
+2. Introduction paragraphs
+3. Gameplay section with subtitle
+4. Story section with subtitle
+5. Graphics and Sound section with subtitle
+6. Why This Game Appeals to Female Gamers section with subtitle
+7. Mods section with subtitle (ONLY if applicable to this game)
+8. Conclusion with subtitle and a **bold rating statement**
+
+Maintain the exact markdown format with section dividers as shown in the system message.`
                   }
                 ],
                 model: "gpt-4o-mini",
