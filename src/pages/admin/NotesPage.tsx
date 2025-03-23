@@ -717,7 +717,7 @@ const NotesPage = () => {
                 <span>
                   {addItemType === 'note' 
                     ? "You can add this note to multiple categories" 
-                    : "Documents are stored separately from regular notes"}
+                    : ""}
                 </span>
                 <Button 
                   variant="ghost" 
