@@ -7,14 +7,17 @@ import { AIGenerateButton } from "@/components/ui/ai-generate-button";
 import { GameTitleGenerator } from "@/components/ui/game-title-generator";
 import { ReviewFormData, Genre } from "./types";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface BasicInformationProps {
   formData: ReviewFormData;
   genres: Genre[];
   onUpdate: (formData: Partial<ReviewFormData>) => void;
+  showPreview?: boolean;
 }
 
-export const BasicInformation = ({ formData, genres, onUpdate }: BasicInformationProps) => {
+export const BasicInformation = ({ formData, genres, onUpdate, showPreview = false }: BasicInformationProps) => {
   const [currentGenreOfMonthId, setCurrentGenreOfMonthId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,12 +104,28 @@ export const BasicInformation = ({ formData, genres, onUpdate }: BasicInformatio
           </div>
         </div>
         <div>
-          <Textarea
-            placeholder="Excerpt (short summary)"
-            value={formData.excerpt}
-            onChange={(e) => onUpdate({ excerpt: e.target.value })}
-            required
-          />
+          {showPreview ? (
+            <div className="border rounded-md p-4 min-h-[100px] bg-muted/20">
+              {formData.excerpt ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {formData.excerpt}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="text-muted-foreground text-center h-full flex items-center justify-center">
+                  <p>Your excerpt preview will appear here</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Textarea
+              placeholder="Excerpt (short summary)"
+              value={formData.excerpt}
+              onChange={(e) => onUpdate({ excerpt: e.target.value })}
+              required
+            />
+          )}
         </div>
         <div>
           <Select

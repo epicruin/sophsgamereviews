@@ -72,6 +72,7 @@ export const ReviewForm = ({ initialData }: ReviewFormProps) => {
 
   const [genres, setGenres] = useState<Genre[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -143,28 +144,49 @@ export const ReviewForm = ({ initialData }: ReviewFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <HomepageSections formData={formData} onUpdate={handleFormUpdate} />
-      <BasicInformation formData={formData} genres={genres} onUpdate={handleFormUpdate} />
+      <BasicInformation formData={formData} genres={genres} onUpdate={handleFormUpdate} showPreview={showPreview} />
       <ImagesSection formData={formData} onUpdate={handleFormUpdate} />
       <YoutubeTrailer formData={formData} onUpdate={handleFormUpdate} />
       <ReleaseDetails formData={formData} onUpdate={handleFormUpdate} />
       <MultiplayerDetails formData={formData} onUpdate={handleFormUpdate} />
       <ProsAndCons formData={formData} onUpdate={handleFormUpdate} />
       <SystemRequirements formData={formData} onUpdate={handleFormUpdate} />
-      <ReviewContent formData={formData} onUpdate={handleFormUpdate} />
+      <ReviewContent formData={formData} onUpdate={handleFormUpdate} showPreview={showPreview} />
       <Awards formData={formData} onUpdate={handleFormUpdate} />
       
       <h3 className="text-lg font-semibold mt-8 mb-4">AI Assistant</h3>
       <AIChat formData={formData} genres={genres} />
 
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/admin/dashboard")}
-        >
-          Cancel
-        </Button>
+      <div className="flex justify-between items-center gap-4">
+        <div className="flex border rounded-md overflow-hidden">
+          <Button
+            type="button"
+            variant={!showPreview ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none"
+            onClick={() => setShowPreview(false)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant={showPreview ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none"
+            onClick={() => setShowPreview(true)}
+          >
+            Preview
+          </Button>
+        </div>
+
         <div className="flex items-center gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/admin/dashboard")}
+          >
+            Cancel
+          </Button>
           <div className="flex items-center gap-2">
             <input
               type="datetime-local"

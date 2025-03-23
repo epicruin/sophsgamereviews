@@ -10,6 +10,8 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleFormProps, ArticleFormData, initialFormData } from "./types";
 import { ArticleAIGenerateButton } from "@/components/ui/article-ai-generate-button";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   // Format datetime for input element (needs YYYY-MM-DDThh:mm format)
@@ -38,6 +40,7 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
   );
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,15 +157,31 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
           </div>
           
           <div className="relative">
-            <Textarea
-              id="summary"
-              name="summary"
-              value={formData.summary}
-              onChange={handleChange}
-              placeholder="Summary (brief description)"
-              rows={3}
-              required
-            />
+            {showPreview ? (
+              <div className="border rounded-md p-4 min-h-[100px] bg-muted/20">
+                {formData.summary ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {formData.summary}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground text-center h-full flex items-center justify-center">
+                    <p>Your summary preview will appear here</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Textarea
+                id="summary"
+                name="summary"
+                value={formData.summary}
+                onChange={handleChange}
+                placeholder="Summary (brief description)"
+                rows={3}
+                required
+              />
+            )}
           </div>
         </div>
       </Card>
@@ -211,15 +230,31 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
         </div>
         <div className="space-y-4">
           <div>
-            <Textarea
-              id="content"
-              name="content"
-              value={formData.content}
-              onChange={handleChange}
-              placeholder="Main article content"
-              rows={10}
-              required
-            />
+            {showPreview ? (
+              <div className="border rounded-md p-4 min-h-[300px] bg-muted/20">
+                {formData.content ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {formData.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground text-center h-full flex items-center justify-center">
+                    <p>Your content preview will appear here</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Textarea
+                id="content"
+                name="content"
+                value={formData.content}
+                onChange={handleChange}
+                placeholder="Main article content"
+                rows={10}
+                required
+              />
+            )}
           </div>
         </div>
       </Card>
@@ -240,49 +275,88 @@ export const ArticleForm = ({ articleData }: ArticleFormProps) => {
         </div>
         <div className="space-y-4">
           <div>
-            <Textarea
-              id="tldr"
-              name="tldr"
-              value={formData.tldr}
-              onChange={handleChange}
-              placeholder="Too Long; Didn't Read summary"
-              rows={3}
-              required
-            />
+            {showPreview ? (
+              <div className="border rounded-md p-4 min-h-[100px] bg-muted/20">
+                {formData.tldr ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {formData.tldr}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground text-center h-full flex items-center justify-center">
+                    <p>Your TL;DR preview will appear here</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Textarea
+                id="tldr"
+                name="tldr"
+                value={formData.tldr}
+                onChange={handleChange}
+                placeholder="Too Long; Didn't Read summary"
+                rows={3}
+                required
+              />
+            )}
           </div>
         </div>
       </Card>
 
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/admin/dashboard")}
-        >
-          Cancel
-        </Button>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="datetime-local"
-              id="scheduled_for"
-              name="scheduled_for"
-              value={formatDateForInput(formData.scheduled_for)}
-              onChange={(e) => setFormData(prev => ({ ...prev, scheduled_for: e.target.value || null }))}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setFormData(prev => ({ ...prev, scheduled_for: null }))}
-            >
-              Clear Schedule
+      <div className="flex justify-between items-center gap-4">
+        <div className="flex border rounded-md overflow-hidden">
+          <Button
+            type="button"
+            variant={!showPreview ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none"
+            onClick={() => setShowPreview(false)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant={showPreview ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none"
+            onClick={() => setShowPreview(true)}
+          >
+            Preview
+          </Button>
+        </div>
+
+        <div className="flex gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/admin/dashboard")}
+          >
+            Cancel
+          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="datetime-local"
+                id="scheduled_for"
+                name="scheduled_for"
+                value={formatDateForInput(formData.scheduled_for)}
+                onChange={(e) => setFormData(prev => ({ ...prev, scheduled_for: e.target.value || null }))}
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFormData(prev => ({ ...prev, scheduled_for: null }))}
+              >
+                Clear Schedule
+              </Button>
+            </div>
+            <Button type="submit" disabled={isLoading}>
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? "Saving..." : formData.scheduled_for ? "Schedule Article" : "Save Article"}
             </Button>
           </div>
-          <Button type="submit" disabled={isLoading}>
-            <Save className="h-4 w-4 mr-2" />
-            {isLoading ? "Saving..." : formData.scheduled_for ? "Schedule Article" : "Save Article"}
-          </Button>
         </div>
       </div>
     </form>

@@ -3,6 +3,8 @@ import { BookOpen, UserRound, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ArticleLargeCardProps {
   id: string;
@@ -73,9 +75,11 @@ export const ArticleLargeCard = ({
           {/* Description section - positioned below title but above bottom section */}
           <div className="absolute inset-x-0 top-[53%] px-3">
             {/* Excerpt - now centered and moved up */}
-            <p className="text-xs sm:text-xs lg:text-sm text-white/90 line-clamp-2 mb-0.5 md:mb-1 text-center">
-              {excerpt}
-            </p>
+            <div className="text-xs sm:text-xs lg:text-sm text-white/90 line-clamp-2 mb-0.5 md:mb-1 text-center prose prose-sm prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {excerpt}
+              </ReactMarkdown>
+            </div>
           </div>
 
           {/* Bottom section containing author info and likes */}

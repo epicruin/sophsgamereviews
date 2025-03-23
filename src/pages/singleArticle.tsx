@@ -491,7 +491,11 @@ const SingleArticle = () => {
           {article.summary && (
             <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md">
               <h3 className="font-semibold mb-4 gradient-text">Summary</h3>
-              <p className="text-lg leading-relaxed text-muted-foreground">{article.summary}</p>
+              <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {article.summary}
+                </ReactMarkdown>
+              </div>
             </Card>
           )}
           
@@ -506,7 +510,11 @@ const SingleArticle = () => {
           {article.tldr && (
             <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md border-rose-500/20">
               <h3 className="font-semibold mb-4 gradient-text">TL;DR</h3>
-              <p className="text-muted-foreground leading-relaxed">{article.tldr}</p>
+              <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {article.tldr}
+                </ReactMarkdown>
+              </div>
             </Card>
           )}
           

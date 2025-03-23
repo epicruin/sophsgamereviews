@@ -2,6 +2,8 @@ import { Star, Heart, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface MediumCardProps {
   id: string;
@@ -81,9 +83,11 @@ export const MediumCard = ({
 
           {/* Bottom content */}
           <div className="p-2 sm:p-3 lg:p-4 space-y-2 flex flex-col items-center text-center">
-            <p className="text-xs sm:text-xs lg:text-sm text-white/90 line-clamp-2 lg:line-clamp-3">
-              {excerpt}
-            </p>
+            <div className="text-xs sm:text-xs lg:text-sm text-white/90 line-clamp-2 lg:line-clamp-3 prose prose-sm prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {excerpt}
+              </ReactMarkdown>
+            </div>
             <div className="flex items-center justify-between w-full">
               <Link to={`/author/${author.name}`} className="flex items-center gap-1 sm:gap-1.5 group/author">
                 <Avatar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ring-1 ring-white/20">

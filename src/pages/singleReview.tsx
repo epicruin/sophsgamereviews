@@ -602,9 +602,11 @@ const SingleReview = () => {
               {/* Summary Card */}
               <Card className="p-8 mb-8 bg-card/95 backdrop-blur-md">
                 <h3 className="font-semibold mb-4 gradient-text">Summary</h3>
-                <p className="text-lg leading-relaxed text-muted-foreground">
-                  {review.excerpt}
-                </p>
+                <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {review.excerpt}
+                  </ReactMarkdown>
+                </div>
               </Card>
 
               {/* Pros/Cons Card */}
