@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, LayoutTemplate, Move } from "lucide-react";
+import { X, Plus, LayoutTemplate, Move, Loader2 } from "lucide-react";
 import { IGDBImageButton } from "@/components/ui/igdb-image-button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,13 +17,66 @@ interface ImagesSectionProps {
 export const ImagesSection = ({ formData, onUpdate }: ImagesSectionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPositionModal, setShowPositionModal] = useState(false);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: "main" | "heading" | "screenshot") => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     try {
       setIsLoading(true);
+      
+      if (type === "screenshot") {
+        setUploadingScreenshot(true);
+        
+        const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+        
+        if (imageFiles.length === 0) {
+          toast.error("Please select image files only");
+          return;
+        }
+        
+        // Limit the number of screenshots to upload
+        const availableSlots = 20 - formData.screenshots.length;
+        const filesToUpload = imageFiles.slice(0, availableSlots);
+        
+        if (filesToUpload.length < imageFiles.length) {
+          toast.info(`Only uploading ${filesToUpload.length} of ${imageFiles.length} images due to the 20 screenshot limit.`);
+        }
+        
+        setUploadProgress({ current: 0, total: filesToUpload.length });
+        
+        const uploadedUrls = [];
+        
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const url = await uploadFile(filesToUpload[i], type);
+          if (url) {
+            uploadedUrls.push(url);
+          }
+          setUploadProgress({ current: i + 1, total: filesToUpload.length });
+        }
+        
+        if (uploadedUrls.length > 0) {
+          onUpdate({ screenshots: [...formData.screenshots, ...uploadedUrls] });
+          toast.success(`Uploaded ${uploadedUrls.length} screenshots successfully`);
+        }
+      } else {
+        // For single files (main image and heading image)
+        await uploadFile(files[0], type);
+      }
+    } catch (error: any) {
+      toast.error(`Failed to upload image: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+      setUploadingScreenshot(false);
+      setUploadProgress({ current: 0, total: 0 });
+    }
+  };
+
+  const uploadFile = async (file: File, type: "main" | "heading" | "screenshot"): Promise<string | null> => {
+    try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
@@ -40,13 +93,85 @@ export const ImagesSection = ({ formData, onUpdate }: ImagesSectionProps) => {
         onUpdate({ image: publicUrl, imagePosition: 50 }); // Default position
       } else if (type === "heading") {
         onUpdate({ headingImage: publicUrl });
-      } else {
-        onUpdate({ screenshots: [...formData.screenshots, publicUrl] });
+      } 
+      
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      return null;
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadingScreenshot) return;
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadingScreenshot) return;
+    setIsDragging(true);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (uploadingScreenshot) return;
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    
+    // Filter for image files
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length === 0) {
+      toast.error("Please drop image files only");
+      return;
+    }
+    
+    try {
+      setUploadingScreenshot(true);
+      
+      // Limit the number of screenshots to upload
+      const availableSlots = 20 - formData.screenshots.length;
+      const filesToUpload = imageFiles.slice(0, availableSlots);
+      
+      if (filesToUpload.length < imageFiles.length) {
+        toast.info(`Only uploading ${filesToUpload.length} of ${imageFiles.length} images due to the 20 screenshot limit.`);
+      }
+      
+      setUploadProgress({ current: 0, total: filesToUpload.length });
+      
+      const uploadedUrls = [];
+      
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const url = await uploadFile(filesToUpload[i], "screenshot");
+        if (url) {
+          uploadedUrls.push(url);
+        }
+        setUploadProgress({ current: i + 1, total: filesToUpload.length });
+      }
+      
+      if (uploadedUrls.length > 0) {
+        onUpdate({ screenshots: [...formData.screenshots, ...uploadedUrls] });
+        toast.success(`Uploaded ${uploadedUrls.length} screenshots successfully`);
       }
     } catch (error: any) {
       toast.error(`Failed to upload image: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setUploadingScreenshot(false);
+      setUploadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -167,14 +292,50 @@ export const ImagesSection = ({ formData, onUpdate }: ImagesSectionProps) => {
               </div>
             ))}
             {formData.screenshots.length < 20 && (
-              <div className="aspect-video flex items-center justify-center border-2 border-dashed rounded">
+              <div 
+                className={`aspect-video flex items-center justify-center border-2 border-dashed rounded cursor-pointer relative group overflow-hidden ${isDragging ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'} transition-colors`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <Input
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e, "screenshot")}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                  id="screenshot-upload"
+                  disabled={uploadingScreenshot}
+                  multiple
                 />
-                <Plus className="h-6 w-6 text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                  {uploadingScreenshot ? (
+                    <>
+                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                      {uploadProgress.total > 1 ? (
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs text-primary">Uploading {uploadProgress.current} of {uploadProgress.total}</span>
+                          <div className="w-24 h-1.5 bg-muted rounded-full mt-1.5 overflow-hidden">
+                            <div 
+                              className="h-full bg-primary rounded-full transition-all duration-200" 
+                              style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-primary">Uploading...</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
+                        {isDragging ? "Drop to upload" : "Click or drag images here"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">You can select multiple images</span>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
