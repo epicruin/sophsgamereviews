@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PenLine, Plus, Trash2, Check, ArrowLeft, Search, Calendar, Clock, FilterX, AlertTriangle, AlertCircle, ThumbsUp, CalendarDays } from "lucide-react";
+import { PenLine, Plus, Trash2, Check, ArrowLeft, Search, Calendar, Clock, FilterX, AlertTriangle, AlertCircle, ThumbsUp, CalendarDays, ChevronDown, ChevronUp, FileText, BookText, Bookmark, Copy } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +54,8 @@ import {
   safeCategory,
   safePriority
 } from "@/types/Note";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 /**
  * Notes & Tasks page component for admin dashboard
@@ -76,6 +78,9 @@ const NotesPage = () => {
   const [noteToToggle, setNoteToToggle] = useState<string | null>(null);
   const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
+  const [addItemType, setAddItemType] = useState<"note" | "doc">("note");
+  const [showPreview, setShowPreview] = useState(false);
 
   // Fetch notes from Supabase on component mount and tab change
   useEffect(() => {
@@ -453,6 +458,54 @@ const NotesPage = () => {
       }
     });
 
+  // Toggle expanded state for a note
+  const toggleNoteExpand = (id: string) => {
+    setExpandedNotes(prev => 
+      prev.includes(id) 
+        ? prev.filter(noteId => noteId !== id) 
+        : [...prev, id]
+    );
+  };
+
+  // Check if a note is expanded
+  const isNoteExpanded = (id: string) => expandedNotes.includes(id);
+
+  // Truncate content for preview
+  const truncateContent = (content: string, maxLength: number = 200) => {
+    if (!content) return "";
+    if (content.length <= maxLength) return content;
+    return content.substring(0, maxLength) + "...";
+  };
+
+  // Render content based on category and format
+  const renderContent = (note: Note, isExpanded: boolean) => {
+    const content = isExpanded || note.content.length <= 200 
+      ? note.content 
+      : truncateContent(note.content);
+    
+    if (note.category === "docs") {
+      return (
+        <div className={cn(
+          "prose prose-sm dark:prose-invert max-w-none break-words",
+          note.completed && "text-muted-foreground line-through"
+        )}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {content}
+          </ReactMarkdown>
+        </div>
+      );
+    }
+    
+    return (
+      <p className={cn(
+        "text-sm whitespace-pre-line break-words",
+        note.completed && "line-through text-muted-foreground"
+      )}>
+        {content}
+      </p>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b sticky top-0 bg-background z-10">
@@ -464,7 +517,7 @@ const NotesPage = () => {
             </Button>
             <h1 className="text-2xl font-bold flex items-center">
               <PenLine className="h-5 w-5 mr-2" />
-              Notes & Tasks
+              Notes & Documents
             </h1>
           </div>
         </div>
@@ -473,10 +526,29 @@ const NotesPage = () => {
       <main className="container mx-auto px-4 py-8">
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Add New Note</CardTitle>
+            <CardTitle>Add New</CardTitle>
             <CardDescription>
-              Create a new note or task to keep track of your ideas
+              Create a new note, task or document to keep track of your ideas
             </CardDescription>
+            <div className="flex mt-2 border-b">
+              <div 
+                className={`px-4 py-2 font-medium cursor-pointer flex items-center gap-2 ${addItemType === 'note' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => {
+                  setAddItemType('note');
+                  setShowPreview(false);
+                }}
+              >
+                <BookText className="h-4 w-4" />
+                Quick Note/Task
+              </div>
+              <div 
+                className={`px-4 py-2 font-medium cursor-pointer flex items-center gap-2 ${addItemType === 'doc' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setAddItemType('doc')}
+              >
+                <FileText className="h-4 w-4" />
+                Document
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -564,28 +636,89 @@ const NotesPage = () => {
                   </Popover>
                 </div>
               </div>
-              <Textarea
-                placeholder="Content"
-                value={newNoteContent}
-                onChange={(e) => setNewNoteContent(e.target.value)}
-                rows={3}
-              />
+
+              {addItemType === 'doc' && (
+                <div className="flex justify-between items-center">
+                  <div className="text-sm font-medium flex items-center gap-1 text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Document supports markdown formatting
+                  </div>
+                  <div className="flex border rounded-md overflow-hidden">
+                    <Button
+                      type="button"
+                      variant={!showPreview ? "default" : "ghost"}
+                      size="sm"
+                      className="rounded-none"
+                      onClick={() => setShowPreview(false)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={showPreview ? "default" : "ghost"}
+                      size="sm"
+                      className="rounded-none"
+                      onClick={() => setShowPreview(true)}
+                    >
+                      Preview
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {addItemType === 'doc' && showPreview ? (
+                <div className="border rounded-md p-4 min-h-[12rem] bg-muted/20">
+                  {newNoteContent ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {newNoteContent}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-center h-full flex items-center justify-center">
+                      <p>Your document preview will appear here</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Textarea
+                  placeholder={addItemType === 'note' ? "Quick note content" : "Document content - supports Markdown formatting"}
+                  value={newNoteContent}
+                  onChange={(e) => setNewNoteContent(e.target.value)}
+                  rows={addItemType === 'note' ? 3 : 8}
+                  className={addItemType === 'doc' ? "font-mono text-sm" : ""}
+                />
+              )}
+
               <div className="flex flex-wrap justify-end gap-2">
-                <Button onClick={() => handleAddNote("reviews")} variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add to Reviews
-                </Button>
-                <Button onClick={() => handleAddNote("articles")} variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add to Articles
-                </Button>
-                <Button onClick={() => handleAddNote("general")} variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add to General
-                </Button>
+                {addItemType === 'note' ? (
+                  <>
+                    <Button onClick={() => handleAddNote("reviews")} variant="outline" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add to Reviews
+                    </Button>
+                    <Button onClick={() => handleAddNote("articles")} variant="outline" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add to Articles
+                    </Button>
+                    <Button onClick={() => handleAddNote("general")} variant="outline" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add to General
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => handleAddNote("docs")} variant={showPreview ? "default" : "outline"} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Save Document
+                  </Button>
+                )}
               </div>
               <div className="flex justify-between items-center text-xs text-muted-foreground pt-2">
-                <span>You can add this note to multiple categories</span>
+                <span>
+                  {addItemType === 'note' 
+                    ? "You can add this note to multiple categories" 
+                    : "Documents are stored separately from regular notes"}
+                </span>
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -594,6 +727,7 @@ const NotesPage = () => {
                     setNewNoteContent("");
                     setNewNoteDueDate(null);
                     setNewNotePriority("medium");
+                    setShowPreview(false);
                   }}
                   className="text-xs"
                 >
@@ -608,13 +742,13 @@ const NotesPage = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search notes..."
+              placeholder="Search notes and documents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="p-3">
               <div className="flex flex-col items-center gap-2">
@@ -693,7 +827,7 @@ const NotesPage = () => {
           onValueChange={(value) => setActiveTab(value as NoteCategory)}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-3 mb-6">
+          <TabsList className="grid grid-cols-4 mb-6">
             <TabsTrigger value="reviews" className="font-medium">
               Reviews
             </TabsTrigger>
@@ -703,9 +837,13 @@ const NotesPage = () => {
             <TabsTrigger value="general" className="font-medium">
               General
             </TabsTrigger>
+            <TabsTrigger value="docs" className="font-medium">
+              <FileText className="h-4 w-4 mr-1.5" />
+              Docs
+            </TabsTrigger>
           </TabsList>
-          
-          {["reviews", "articles", "general"].map((category) => (
+
+          {["reviews", "articles", "general", "docs"].map((category) => (
             <TabsContent key={category} value={category} className="mt-0">
               {isLoading ? (
                 <div className="p-8 flex items-center justify-center">
@@ -714,12 +852,20 @@ const NotesPage = () => {
               ) : filteredNotes.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center p-8">
-                    <PenLine className="h-12 w-12 text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground">No notes found</p>
+                    {category === "docs" ? (
+                      <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+                    ) : (
+                      <PenLine className="h-12 w-12 text-muted-foreground mb-3" />
+                    )}
+                    <p className="text-muted-foreground">
+                      {category === "docs" ? "No documents found" : "No notes found"}
+                    </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {priorityFilter !== "all" 
-                        ? `Try changing your priority filter or create a new ${priorityFilter} priority note`
-                        : "Add your first note above"}
+                        ? `Try changing your priority filter or create a new ${priorityFilter} priority ${category === "docs" ? "document" : "note"}`
+                        : category === "docs" 
+                          ? "Add your first document above" 
+                          : "Add your first note above"}
                     </p>
                   </CardContent>
                 </Card>
@@ -745,12 +891,17 @@ const NotesPage = () => {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <h3 className={cn(
-                                "font-medium break-words",
-                                note.completed && "line-through text-muted-foreground"
-                              )}>
-                                {note.title}
-                              </h3>
+                              <div className="flex items-center gap-2">
+                                {category === "docs" && (
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <h3 className={cn(
+                                  "font-medium break-words",
+                                  note.completed && "line-through text-muted-foreground"
+                                )}>
+                                  {note.title}
+                                </h3>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <TooltipProvider>
                                   <Tooltip>
@@ -765,7 +916,7 @@ const NotesPage = () => {
                                         )}>
                                           <SelectValue>
                                             <div className="flex items-center">
-                                              {getPriorityIcon(note.priority) || <Clock className="h-4 w-4" />}
+                                              {getPriorityIcon(note.priority)}
                                               <span className="ml-1">{note.priority || "No priority"}</span>
                                             </div>
                                           </SelectValue>
@@ -797,7 +948,7 @@ const NotesPage = () => {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                                
+
                                 <Popover>
                                   <TooltipProvider>
                                     <Tooltip>
@@ -847,7 +998,7 @@ const NotesPage = () => {
                                     </div>
                                     <CalendarComponent
                                       mode="single"
-                                      selected={note.due_date && !isNaN(new Date(note.due_date).getTime()) 
+                                      selected={note.due_date && !isNaN(new Date(note.due_date).getTime())
                                         ? new Date(note.due_date) 
                                         : undefined}
                                       onSelect={(date) => handleUpdateDueDate(note.id, date)}
@@ -855,7 +1006,30 @@ const NotesPage = () => {
                                     />
                                   </PopoverContent>
                                 </Popover>
-                                
+
+                                {category === "docs" && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(note.content);
+                                            toast.success("Document content copied to clipboard");
+                                          }}
+                                        >
+                                          <Copy className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Copy content
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
@@ -866,12 +1040,30 @@ const NotesPage = () => {
                                 </Button>
                               </div>
                             </div>
-                            <p className={cn(
-                              "text-sm whitespace-pre-line break-words",
-                              note.completed && "line-through text-muted-foreground"
-                            )}>
-                              {note.content}
-                            </p>
+                            <div className="space-y-2">
+                              {renderContent(note, isNoteExpanded(note.id))}
+                              
+                              {note.content && note.content.length > 200 && (
+                                <Button
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-xs p-0 h-6 text-muted-foreground hover:text-foreground"
+                                  onClick={() => toggleNoteExpand(note.id)}
+                                >
+                                  {isNoteExpanded(note.id) ? (
+                                    <div className="flex items-center">
+                                      <ChevronUp className="h-3 w-3 mr-1" />
+                                      <span>Show less</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center">
+                                      <ChevronDown className="h-3 w-3 mr-1" />
+                                      <span>Show more</span>
+                                    </div>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                             <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                               <span>Created: {safeFormatDate(note.created_at)}</span>
                               {note.due_date && (
@@ -893,6 +1085,43 @@ const NotesPage = () => {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Markdown help card */}
+        {addItemType === 'doc' && (
+          <div className="mt-4 p-4 bg-muted/30 rounded-md border text-sm">
+            <div className="flex items-center mb-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Markdown Support
+              </h4>
+            </div>
+            <p className="text-muted-foreground mb-3">
+              Documents support Markdown formatting for rich text. Some examples:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <code className="bg-muted p-1 rounded">**Bold text**</code>
+                <span className="mx-2">→</span>
+                <span className="font-bold">Bold text</span>
+              </div>
+              <div>
+                <code className="bg-muted p-1 rounded">*Italic text*</code>
+                <span className="mx-2">→</span>
+                <span className="italic">Italic text</span>
+              </div>
+              <div>
+                <code className="bg-muted p-1 rounded"># Heading 1</code>
+                <span className="mx-2">→</span>
+                <span className="font-bold text-lg">Heading 1</span>
+              </div>
+              <div>
+                <code className="bg-muted p-1 rounded">[Link](url)</code>
+                <span className="mx-2">→</span>
+                <span className="text-primary underline">Link</span>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -935,9 +1164,9 @@ const NotesPage = () => {
       <Dialog open={deleteConfirmDialogOpen} onOpenChange={setDeleteConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Note</DialogTitle>
+            <DialogTitle>Delete {activeTab === "docs" ? "Document" : "Note"}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this note? This action cannot be undone.
+              Are you sure you want to delete this {activeTab === "docs" ? "document" : "note"}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">

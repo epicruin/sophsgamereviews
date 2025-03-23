@@ -1,13 +1,13 @@
 // Type definitions for the Notes feature
 
 // Categories for notes
-export type NoteCategory = "reviews" | "articles" | "general";
+export type NoteCategory = "reviews" | "articles" | "general" | "docs";
 
 // Priority levels for notes
 export type Priority = "low" | "medium" | "high" | null;
 
 // Valid categories for type checking
-export const VALID_CATEGORIES: NoteCategory[] = ["reviews", "articles", "general"];
+export const VALID_CATEGORIES: NoteCategory[] = ["reviews", "articles", "general", "docs"];
 
 // Valid priorities for type checking
 export const VALID_PRIORITIES: Priority[] = ["low", "medium", "high", null];
