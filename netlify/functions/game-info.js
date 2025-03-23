@@ -289,7 +289,7 @@ Use the markdown template above, maintaining the same line spacing and subtitles
 
 ---
 
-IMPORTANT: Replace ONLY the content in parentheses with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the header format and the ending divider (---) exactly as shown above.`
+IMPORTANT: Replace ONLY the content in parentheses with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the header format and the ending divider (---) exactly as shown above. Ensure the divider is on its own line with blank lines before and after it.`
             },
             {
               section: "gameplay",
@@ -301,7 +301,7 @@ IMPORTANT: Replace ONLY the content in parentheses with your writing. DO NOT mod
 
 ---
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Gameplay Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Gameplay Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above, on its own line with blank lines before and after it.`
             },
             {
               section: "story",
@@ -313,7 +313,7 @@ IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Gameplay Subt
 
 ---
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Story Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Story Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above, on its own line with blank lines before and after it.`
             },
             {
               section: "presentation",
@@ -325,7 +325,7 @@ IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Story Subtitl
 
 ---
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Graphics and Sound Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Graphics and Sound Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above, on its own line with blank lines before and after it.`
             },
             {
               section: "female_appeal",
@@ -337,7 +337,7 @@ IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Graphics and 
 
 ---
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Subtitle for Female Gamers] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Subtitle for Female Gamers] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above, on its own line with blank lines before and after it.`
             },
             {
               section: "mods",
@@ -351,7 +351,7 @@ IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Subtitle for 
 
 If you determine that mods are NOT applicable to this game (for example, if it's a console exclusive or doesn't support modding), just return the text "NO_MODS_APPLICABLE" and nothing else.
 
-IMPORTANT: If mods are applicable, replace ONLY the content in parentheses and the [Catchy Mods Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.`
+IMPORTANT: If mods are applicable, replace ONLY the content in parentheses and the [Catchy Mods Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above, on its own line with blank lines before and after it.`
             },
             {
               section: "conclusion",
@@ -363,7 +363,7 @@ IMPORTANT: If mods are applicable, replace ONLY the content in parentheses and t
 
 ---
 
-IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Conclusion Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above.
+IMPORTANT: Replace ONLY the content in parentheses and the [Catchy Conclusion Subtitle] with your writing. DO NOT modify the markdown structure, headers, or formatting. Keep the ending divider (---) exactly as shown above, on its own line with blank lines before and after it.
 
 End with a catchy closing line that a female reviewer from England might use.`
             }
@@ -513,7 +513,8 @@ EXTREMELY IMPORTANT:
 2. DO NOT modify the markdown structure, headers, or formatting in any way
 3. Keep all heading levels (### and ####) exactly as shown
 4. Every section MUST end with a divider (---) exactly as shown
-5. The ending divider after the conclusion is required`
+5. Each divider MUST be on its own line with blank lines before and after it
+6. Do not put section headers on the same line as dividers`
                   },
                   {
                     role: "user",
