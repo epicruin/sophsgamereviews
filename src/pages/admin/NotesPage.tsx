@@ -51,8 +51,11 @@ import {
   NoteDatabaseRow, 
   VALID_CATEGORIES, 
   VALID_PRIORITIES,
+  DocumentCategory,
+  VALID_DOC_CATEGORIES,
   safeCategory,
-  safePriority
+  safePriority,
+  safeDocCategory
 } from "@/types/Note";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -69,10 +72,13 @@ const NotesPage = () => {
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [newNotePriority, setNewNotePriority] = useState<Priority>("medium");
   const [newNoteDueDate, setNewNoteDueDate] = useState<Date | null>(null);
+  const [newDocCategory, setNewDocCategory] = useState<DocumentCategory>("instructional");
+  const [newDocPinned, setNewDocPinned] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"created" | "due" | "priority">("created");
+  const [sortBy, setSortBy] = useState<"created" | "due" | "priority" | "category">("created");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "all">("all");
+  const [categoryFilter, setCategoryFilter] = useState<DocumentCategory | "all">("all");
   const [userId, setUserId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToToggle, setNoteToToggle] = useState<string | null>(null);
@@ -81,6 +87,8 @@ const NotesPage = () => {
   const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
   const [addItemType, setAddItemType] = useState<"note" | "doc">("note");
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<Note | null>(null);
+  const [viewDocDialogOpen, setViewDocDialogOpen] = useState(false);
 
   // Fetch notes from Supabase on component mount and tab change
   useEffect(() => {
@@ -160,7 +168,9 @@ const NotesPage = () => {
       const typedNotes = (data || []).map((note: NoteDatabaseRow): Note => ({
         ...note,
         category: safeCategory(note.category),
-        priority: safePriority(note.priority)
+        priority: safePriority(note.priority),
+        doc_category: note.doc_category ? safeDocCategory(note.doc_category) : undefined,
+        pinned: note.pinned || false
       }));
 
       setNotes(typedNotes);
@@ -193,19 +203,33 @@ const NotesPage = () => {
         return;
       }
       
-      const newNote = {
+      // Build note data based on type
+      const noteData: any = {
         title: newNoteTitle.trim(),
         content: newNoteContent || "",
         category: category,
         completed: false,
-        priority: newNotePriority || "medium",
-        due_date: newNoteDueDate?.toISOString() || null,
         user_id: userId
       };
       
+      // Add relevant fields based on note type
+      if (category === "docs") {
+        noteData.doc_category = newDocCategory;
+        noteData.pinned = newDocPinned;
+        // For documents we don't use priority or due date
+        noteData.priority = null;
+        noteData.due_date = null;
+      } else {
+        noteData.priority = newNotePriority || "medium";
+        noteData.due_date = newNoteDueDate?.toISOString() || null;
+        // Documents-only fields
+        noteData.doc_category = null;
+        noteData.pinned = false;
+      }
+      
       const { data, error } = await supabase
         .from('notes')
-        .insert(newNote)
+        .insert(noteData)
         .select()
         .single();
 
@@ -218,10 +242,13 @@ const NotesPage = () => {
       }
 
       // Convert database response to application type with safe conversions
+      const typedData = data as unknown as NoteDatabaseRow;
       const typedNote: Note = {
-        ...data,
-        category: safeCategory(data.category),
-        priority: safePriority(data.priority)
+        ...typedData,
+        category: safeCategory(typedData.category),
+        priority: safePriority(typedData.priority),
+        doc_category: typedData.doc_category ? safeDocCategory(typedData.doc_category) : undefined,
+        pinned: Boolean(typedData.pinned)
       };
 
       // Only add to notes array if the new note is in the currently active tab
@@ -229,8 +256,19 @@ const NotesPage = () => {
         setNotes([typedNote, ...notes]);
       }
       
-      // Do not reset the form to allow adding to multiple categories
-      toast.success(`Note added to ${category} successfully`);
+      // Reset form for documents
+      if (category === "docs") {
+        setNewNoteTitle("");
+        setNewNoteContent("");
+        setNewDocCategory("instructional");
+        setNewDocPinned(false);
+        setShowPreview(false);
+        
+        // Switch to the docs tab to show the new document
+        setActiveTab("docs");
+      }
+      
+      toast.success(`${category === "docs" ? "Document" : "Note"} added successfully`);
     } catch (error: any) {
       console.error('Error adding note:', error);
       // More specific error messages based on error type
@@ -239,7 +277,7 @@ const NotesPage = () => {
       } else if (error.code?.startsWith("23")) {
         toast.error('Invalid data format');
       } else {
-        toast.error('Failed to add note. Please try again.');
+        toast.error(`Failed to add ${category === "docs" ? "document" : "note"}. Please try again.`);
       }
     } finally {
       setIsLoading(false);
@@ -430,6 +468,44 @@ const NotesPage = () => {
     }
   };
 
+  // Toggle pinned status for a document
+  const handleTogglePin = async (id: string) => {
+    if (!id) {
+      toast.error("Invalid document ID");
+      return;
+    }
+    
+    try {
+      const docToUpdate = notes.find(note => note.id === id);
+      
+      if (!docToUpdate) {
+        toast.error("Document not found");
+        return;
+      }
+      
+      const newPinStatus = !docToUpdate.pinned;
+      
+      const { error } = await supabase
+        .from('notes')
+        .update({ pinned: newPinStatus } as any)
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      setNotes(notes.map(note => 
+        note.id === id ? { ...note, pinned: newPinStatus } : note
+      ));
+      
+      toast.success(newPinStatus ? "Document pinned" : "Document unpinned");
+    } catch (error) {
+      console.error('Error updating pin status:', error);
+      toast.error('Failed to update pin status');
+      fetchNotes();
+    }
+  };
+
   // Filter and sort notes based on active tab, search query, and filters
   const filteredNotes = notes
     .filter(note => 
@@ -437,10 +513,27 @@ const NotesPage = () => {
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       note.content.toLowerCase().includes(searchQuery.toLowerCase())
     )
-    .filter(note => 
-      priorityFilter === "all" || note.priority === priorityFilter
-    )
+    .filter(note => {
+      if (activeTab === "docs") {
+        return categoryFilter === "all" || note.doc_category === categoryFilter;
+      } else {
+        return priorityFilter === "all" || note.priority === priorityFilter;
+      }
+    })
     .sort((a, b) => {
+      // First handle pinned documents
+      if (activeTab === "docs") {
+        // Pinned docs come first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        
+        if (sortBy === "category") {
+          // Sort by category name
+          return (a.doc_category || "other").localeCompare(b.doc_category || "other");
+        }
+      }
+      
+      // Regular sorting logic
       if (sortBy === "created") {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       } else if (sortBy === "due") {
@@ -449,13 +542,16 @@ const NotesPage = () => {
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
         return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-      } else {
+      } else if (sortBy === "priority") {
         // Priority sorting (high > medium > low > null)
         const priorityValue = { high: 3, medium: 2, low: 1, null: 0 };
         const aValue = a.priority ? priorityValue[a.priority] : 0;
         const bValue = b.priority ? priorityValue[b.priority] : 0;
         return bValue - aValue;
       }
+      
+      // Default to created date
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
   // Toggle expanded state for a note
@@ -475,6 +571,12 @@ const NotesPage = () => {
     if (!content) return "";
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + "...";
+  };
+
+  // Handle opening a doc to view
+  const handleViewDoc = (note: Note) => {
+    setSelectedDoc(note);
+    setViewDocDialogOpen(true);
   };
 
   // Render content based on category and format
@@ -503,6 +605,133 @@ const NotesPage = () => {
       )}>
         {content}
       </p>
+    );
+  };
+
+  // Render the docs tab differently
+  const renderDocsTab = () => {
+    if (isLoading) {
+      return (
+        <div className="p-8 flex items-center justify-center">
+          <p>Loading documents...</p>
+        </div>
+      );
+    }
+    
+    if (filteredNotes.length === 0) {
+      return (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No documents found</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {categoryFilter !== "all" 
+                ? `Try changing your category filter or create a new ${categoryFilter.replace(/_/g, ' ')} document`
+                : "Add your first document above"}
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    return (
+      <ScrollArea className="h-[calc(100vh-500px)] min-h-[400px]">
+        <div className="space-y-2 p-1">
+          {filteredNotes.map((doc) => (
+            <Card 
+              key={doc.id} 
+              className={cn(
+                "border transition-all hover:bg-accent/50 cursor-pointer",
+                doc.pinned && "border-primary border-2",
+                doc.completed && "bg-muted/50"
+              )}
+              onClick={() => handleViewDoc(doc)}
+            >
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1">
+                    {doc.pinned ? (
+                      <Bookmark className="h-5 w-5 text-primary fill-primary" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-primary" />
+                    )}
+                    <h3 className={cn(
+                      "font-medium break-words",
+                      doc.completed && "text-muted-foreground"
+                    )}>
+                      {doc.title}
+                    </h3>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {doc.doc_category && (
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize"
+                      )}>
+                        {doc.doc_category.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    
+                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTogglePin(doc.id);
+                              }}
+                            >
+                              {doc.pinned ? (
+                                <Bookmark className="h-3.5 w-3.5 text-primary fill-primary" />
+                              ) : (
+                                <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {doc.pinned ? "Unpin document" : "Pin document"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteNote(doc.id);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Delete document
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-muted-foreground">
+                    Created: {safeFormatDate(doc.created_at)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </ScrollArea>
     );
   };
 
@@ -560,80 +789,120 @@ const NotesPage = () => {
                   className="font-medium flex-1"
                 />
                 <div className="flex gap-2">
-                  <Select 
-                    value={newNotePriority || "medium"} 
-                    onValueChange={(value) => setNewNotePriority(value as Priority)}
-                  >
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high" className="text-rose-500 font-medium">
-                        <div className="flex items-center">
-                          <AlertTriangle className="h-4 w-4 mr-2" />
-                          High Priority
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="medium" className="text-amber-500 font-medium">
-                        <div className="flex items-center">
-                          <AlertCircle className="h-4 w-4 mr-2" />
-                          Medium Priority
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="low" className="text-green-500 font-medium">
-                        <div className="flex items-center">
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Low Priority
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className={cn(
-                          "w-full sm:w-[180px] justify-start text-left font-normal",
-                          !newNoteDueDate && "text-muted-foreground"
-                        )}
+                  {addItemType === 'note' ? (
+                    <>
+                      <Select 
+                        value={newNotePriority || "medium"} 
+                        onValueChange={(value) => setNewNotePriority(value as Priority)}
                       >
-                        <CalendarDays className="mr-2 h-4 w-4" />
-                        {newNoteDueDate ? format(newNoteDueDate, "PPP") : "Add due date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <div className="p-3 border-b">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Select due date</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setNewNoteDueDate(null)}
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="high" className="text-rose-500 font-medium">
+                            <div className="flex items-center">
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              High Priority
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="medium" className="text-amber-500 font-medium">
+                            <div className="flex items-center">
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                              Medium Priority
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="low" className="text-green-500 font-medium">
+                            <div className="flex items-center">
+                              <ThumbsUp className="h-4 w-4 mr-2" />
+                              Low Priority
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className={cn(
+                              "w-full sm:w-[180px] justify-start text-left font-normal",
+                              !newNoteDueDate && "text-muted-foreground"
+                            )}
                           >
-                            Clear
+                            <CalendarDays className="mr-2 h-4 w-4" />
+                            {newNoteDueDate ? format(newNoteDueDate, "PPP") : "Add due date"}
                           </Button>
-                        </div>
-                        <div className="flex mt-2 gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setNewNoteDueDate(new Date())}>
-                            Today
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setNewNoteDueDate(addDays(new Date(), 1))}>
-                            Tomorrow
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setNewNoteDueDate(addDays(new Date(), 7))}>
-                            Next week
-                          </Button>
-                        </div>
-                      </div>
-                      <CalendarComponent
-                        mode="single"
-                        selected={newNoteDueDate || undefined}
-                        onSelect={setNewNoteDueDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <div className="p-3 border-b">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">Select due date</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setNewNoteDueDate(null)}
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                            <div className="flex mt-2 gap-2">
+                              <Button size="sm" variant="outline" onClick={() => setNewNoteDueDate(new Date())}>
+                                Today
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setNewNoteDueDate(addDays(new Date(), 1))}>
+                                Tomorrow
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setNewNoteDueDate(addDays(new Date(), 7))}>
+                                Next week
+                              </Button>
+                            </div>
+                          </div>
+                          <CalendarComponent
+                            mode="single"
+                            selected={newNoteDueDate || undefined}
+                            onSelect={setNewNoteDueDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </>
+                  ) : (
+                    <>
+                      <Select 
+                        value={newDocCategory} 
+                        onValueChange={(value) => setNewDocCategory(value as DocumentCategory)}
+                      >
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {VALID_DOC_CATEGORIES.map((category) => (
+                            <SelectItem key={category} value={category} className="capitalize">
+                              {category.replace(/_/g, ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button 
+                        variant={newDocPinned ? "default" : "outline"}
+                        className="w-full sm:w-[180px] flex items-center gap-2"
+                        onClick={() => setNewDocPinned(!newDocPinned)}
+                      >
+                        {newDocPinned ? (
+                          <>
+                            <Bookmark className="h-4 w-4 fill-current" />
+                            Pinned Document
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="h-4 w-4" />
+                            Pin Document
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -725,8 +994,13 @@ const NotesPage = () => {
                   onClick={() => {
                     setNewNoteTitle("");
                     setNewNoteContent("");
-                    setNewNoteDueDate(null);
-                    setNewNotePriority("medium");
+                    if (addItemType === 'note') {
+                      setNewNoteDueDate(null);
+                      setNewNotePriority("medium");
+                    } else {
+                      setNewDocCategory("instructional");
+                      setNewDocPinned(false);
+                    }
                     setShowPreview(false);
                   }}
                   className="text-xs"
@@ -763,60 +1037,118 @@ const NotesPage = () => {
                     <Clock className="h-4 w-4 mr-1" /> 
                     Created
                   </Button>
-                  <Button 
-                    variant={sortBy === "due" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setSortBy("due")}
-                    className="min-w-20"
-                  >
-                    <Calendar className="h-4 w-4 mr-1" /> 
-                    Due Date
-                  </Button>
+                  
+                  {activeTab === "docs" ? (
+                    <Button 
+                      variant={sortBy === "category" ? "default" : "outline"} 
+                      size="sm"
+                      onClick={() => setSortBy("category")}
+                      className="min-w-20"
+                    >
+                      <FileText className="h-4 w-4 mr-1" /> 
+                      Category
+                    </Button>
+                  ) : (
+                    <>
+                      <Button 
+                        variant={sortBy === "due" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setSortBy("due")}
+                        className="min-w-20"
+                      >
+                        <Calendar className="h-4 w-4 mr-1" /> 
+                        Due Date
+                      </Button>
+                      <Button 
+                        variant={sortBy === "priority" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setSortBy("priority")}
+                        className="min-w-20"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-1" /> 
+                        Priority
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </Card>
 
             <Card className="p-3">
               <div className="flex flex-col items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium text-center">Filter priority:</span>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button 
-                    variant={priorityFilter === "all" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setPriorityFilter("all")}
-                    className="min-w-16"
-                  >
-                    <FilterX className="h-4 w-4 mr-1" />
-                    All
-                  </Button>
-                  <Button 
-                    variant={priorityFilter === "high" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setPriorityFilter("high")}
-                    className={`min-w-16 ${priorityFilter === "high" ? "" : "text-rose-500"}`}
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    High
-                  </Button>
-                  <Button 
-                    variant={priorityFilter === "medium" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setPriorityFilter("medium")}
-                    className={`min-w-16 ${priorityFilter === "medium" ? "" : "text-amber-500"}`}
-                  >
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    Medium
-                  </Button>
-                  <Button 
-                    variant={priorityFilter === "low" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setPriorityFilter("low")}
-                    className={`min-w-16 ${priorityFilter === "low" ? "" : "text-green-500"}`}
-                  >
-                    <ThumbsUp className="h-4 w-4 mr-1" />
-                    Low
-                  </Button>
-                </div>
+                {activeTab === "docs" ? (
+                  <>
+                    <span className="text-sm text-muted-foreground font-medium text-center">Filter category:</span>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button 
+                        variant={categoryFilter === "all" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setCategoryFilter("all")}
+                        className="min-w-16"
+                      >
+                        <FilterX className="h-4 w-4 mr-1" />
+                        All
+                      </Button>
+                      <Select
+                        value={categoryFilter === "all" ? "all" : categoryFilter}
+                        onValueChange={(value) => setCategoryFilter(value === "all" ? "all" : value as DocumentCategory)}
+                      >
+                        <SelectTrigger className="h-9 min-w-[150px]">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {VALID_DOC_CATEGORIES.map((category) => (
+                            <SelectItem key={category} value={category} className="capitalize">
+                              {category.replace(/_/g, ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm text-muted-foreground font-medium text-center">Filter priority:</span>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button 
+                        variant={priorityFilter === "all" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setPriorityFilter("all")}
+                        className="min-w-16"
+                      >
+                        <FilterX className="h-4 w-4 mr-1" />
+                        All
+                      </Button>
+                      <Button 
+                        variant={priorityFilter === "high" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setPriorityFilter("high")}
+                        className={`min-w-16 ${priorityFilter === "high" ? "" : "text-rose-500"}`}
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        High
+                      </Button>
+                      <Button 
+                        variant={priorityFilter === "medium" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setPriorityFilter("medium")}
+                        className={`min-w-16 ${priorityFilter === "medium" ? "" : "text-amber-500"}`}
+                      >
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        Medium
+                      </Button>
+                      <Button 
+                        variant={priorityFilter === "low" ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => setPriorityFilter("low")}
+                        className={`min-w-16 ${priorityFilter === "low" ? "" : "text-green-500"}`}
+                      >
+                        <ThumbsUp className="h-4 w-4 mr-1" />
+                        Low
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
           </div>
@@ -843,7 +1175,7 @@ const NotesPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          {["reviews", "articles", "general", "docs"].map((category) => (
+          {["reviews", "articles", "general"].map((category) => (
             <TabsContent key={category} value={category} className="mt-0">
               {isLoading ? (
                 <div className="p-8 flex items-center justify-center">
@@ -852,20 +1184,12 @@ const NotesPage = () => {
               ) : filteredNotes.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center p-8">
-                    {category === "docs" ? (
-                      <FileText className="h-12 w-12 text-muted-foreground mb-3" />
-                    ) : (
-                      <PenLine className="h-12 w-12 text-muted-foreground mb-3" />
-                    )}
-                    <p className="text-muted-foreground">
-                      {category === "docs" ? "No documents found" : "No notes found"}
-                    </p>
+                    <PenLine className="h-12 w-12 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">No notes found</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {priorityFilter !== "all" 
-                        ? `Try changing your priority filter or create a new ${priorityFilter} priority ${category === "docs" ? "document" : "note"}`
-                        : category === "docs" 
-                          ? "Add your first document above" 
-                          : "Add your first note above"}
+                        ? `Try changing your priority filter or create a new ${priorityFilter} priority note`
+                        : "Add your first note above"}
                     </p>
                   </CardContent>
                 </Card>
@@ -892,9 +1216,6 @@ const NotesPage = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <div className="flex items-center gap-2">
-                                {category === "docs" && (
-                                  <FileText className="h-4 w-4 text-muted-foreground" />
-                                )}
                                 <h3 className={cn(
                                   "font-medium break-words",
                                   note.completed && "line-through text-muted-foreground"
@@ -1007,28 +1328,27 @@ const NotesPage = () => {
                                   </PopoverContent>
                                 </Popover>
 
-                                {category === "docs" && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon"
-                                          className="h-7 w-7"
-                                          onClick={() => {
-                                            navigator.clipboard.writeText(note.content);
-                                            toast.success("Document content copied to clipboard");
-                                          }}
-                                        >
-                                          <Copy className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        Copy content
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
+                                {/* Copy content button - added for all note types */}
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(note.content);
+                                          toast.success("Note content copied to clipboard");
+                                        }}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Copy content
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
 
                                 <Button 
                                   variant="ghost" 
@@ -1084,6 +1404,11 @@ const NotesPage = () => {
               )}
             </TabsContent>
           ))}
+          
+          {/* Special rendering for docs tab */}
+          <TabsContent value="docs" className="mt-0">
+            {renderDocsTab()}
+          </TabsContent>
         </Tabs>
 
         {/* Markdown help card */}
@@ -1185,6 +1510,86 @@ const NotesPage = () => {
             >
               Delete
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document view dialog */}
+      <Dialog open={viewDocDialogOpen} onOpenChange={setViewDocDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedDoc?.pinned ? (
+                <Bookmark className="h-5 w-5 text-primary fill-primary" />
+              ) : (
+                <FileText className="h-5 w-5" />
+              )}
+              {selectedDoc?.title}
+            </DialogTitle>
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">
+                  Created: {selectedDoc ? safeFormatDate(selectedDoc.created_at) : ''}
+                </span>
+                {selectedDoc?.doc_category && (
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+                    {selectedDoc.doc_category.replace(/_/g, ' ')}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => {
+                    if (selectedDoc) {
+                      handleTogglePin(selectedDoc.id);
+                    }
+                  }}
+                >
+                  {selectedDoc?.pinned ? (
+                    <>
+                      <Bookmark className="h-4 w-4 fill-primary text-primary" />
+                      <span>Unpin</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark className="h-4 w-4" />
+                      <span>Pin</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 mt-4">
+            <div className="prose prose-sm dark:prose-invert max-w-none p-2">
+              {selectedDoc && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedDoc.content}
+                </ReactMarkdown>
+              )}
+            </div>
+          </ScrollArea>
+          
+          <DialogFooter className="mt-4 gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                if (selectedDoc) {
+                  navigator.clipboard.writeText(selectedDoc.content);
+                  toast.success("Document content copied");
+                }
+              }}
+              className="gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Content
+            </Button>
+            <Button onClick={() => setViewDocDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
